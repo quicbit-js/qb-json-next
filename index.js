@@ -48,13 +48,13 @@ function pos_map () {
   map([ARR_BFV, ARR_B_V], val, ARR_A_V)
   map([ARR_A_V], ',', ARR_B_V)
 
-  map([ARR_BFV, ARR_B_V, OBJ_B_V], '[',  ARR_BFV)
-  map([ARR_BFV, ARR_B_V, OBJ_B_V], '{',  OBJ_BFK)
+  map([ARR_BFV, ARR_B_V, OBJ_B_V], '[', ARR_BFV)
+  map([ARR_BFV, ARR_B_V, OBJ_B_V], '{', OBJ_BFK)
 
-  map([OBJ_A_V],            ',',  OBJ_B_K)
-  map([OBJ_BFK, OBJ_B_K],   's',  OBJ_A_K)      // s = string
-  map([OBJ_A_K],            ':',  OBJ_B_V)
-  map([OBJ_B_V],            val,  OBJ_A_V)
+  map([OBJ_A_V], ',', OBJ_B_K)
+  map([OBJ_BFK, OBJ_B_K], 's', OBJ_A_K)      // s = string
+  map([OBJ_A_K], ':', OBJ_B_V)
+  map([OBJ_B_V], val, OBJ_A_V)
 
   // ending of object and array '}' and ']' are handled by checking the stack
   return ret
@@ -63,7 +63,7 @@ function pos_map () {
 var POS_MAP = pos_map()
 
 function ascii_to_code (s, code, ret) {
-  ret = ret || new Uint8Array(0x7F);
+  ret = ret || new Uint8Array(0x7F)
   s.split('').forEach(function (c) { ret[c.charCodeAt(0)] = code })
   return ret
 }
@@ -102,10 +102,10 @@ function skip_str (src, off, lim) {
         // count number of escapes going backwards (n = escape count +1)
         for (var n = 2; src[i - n] === 92 && i - n >= off; n++) {}          // \ BACKSLASH escape
         if (n % 2 === 1) {
-          return i+1  // skip quote
+          return i + 1  // skip quote
         }
       } else {
-        return i+1  // skip quote
+        return i + 1  // skip quote
       }
     }
   }
@@ -141,15 +141,15 @@ function next (ps) {
     ps.tok = ps.src[ps.vlim++]
     switch (ps.tok) {
       case 8: case 9: case 10: case 12: case 13: case 32:
-      if (WHITESPACE[ps.src[ps.vlim]] === 1 && ps.vlim < ps.lim) {             // 119 = 'w' whitespace
-        while (WHITESPACE[ps.src[++ps.vlim]] === 1 && ps.vlim < ps.lim) {}
-      }
-      continue
+        if (WHITESPACE[ps.src[ps.vlim]] === 1 && ps.vlim < ps.lim) {             // 119 = 'w' whitespace
+          while (WHITESPACE[ps.src[++ps.vlim]] === 1 && ps.vlim < ps.lim) {}
+        }
+        continue
 
       case 44:                                          // ,    COMMA
       case 58:                                          // :    COLON
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0)       { ps.voff = ps.vlim - 1; return handle_unexp(ps) }
+        if (pos1 === 0) { ps.voff = ps.vlim - 1; return handle_unexp(ps) }
         ps.pos = pos1
         continue
 
@@ -157,16 +157,14 @@ function next (ps) {
         ps.tok = 115                                    // s for string
         ps.vlim = skip_str(ps.src, ps.vlim, ps.lim)
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0)         return handle_unexp(ps)
+        if (pos1 === 0) return handle_unexp(ps)
         if (pos1 === OBJ_A_K) {
           // key
           ps.koff = ps.voff
-          if (ps.vlim > 0)      { ps.pos = pos1; ps.klim = ps.voff = ps.vlim; continue }
-          else                  { ps.klim = ps.voff = -ps.vlim; return handle_neg(ps) }
+          if (ps.vlim > 0) { ps.pos = pos1; ps.klim = ps.voff = ps.vlim; continue } else { ps.klim = ps.voff = -ps.vlim; return handle_neg(ps) }
         } else {
           // value
-          if (ps.vlim > 0)      { ps.pos = pos1; ps.vcount++; return ps.tok }
-          else                  return handle_neg(ps)
+          if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
         }
 
       case 102:                                         // f    false
@@ -174,9 +172,8 @@ function next (ps) {
       case 116:                                         // t    true
         ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, TOK_BYTES[ps.tok])
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0)         return handle_unexp(ps)
-        if (ps.vlim > 0)        { ps.pos = pos1; ps.vcount++; return ps.tok }
-        else                    return handle_neg(ps)
+        if (pos1 === 0) return handle_unexp(ps)
+        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
 
       case 48:case 49:case 50:case 51:case 52:          // 0-4    digits
       case 53:case 54:case 55:case 56:case 57:          // 5-9    digits
@@ -184,14 +181,13 @@ function next (ps) {
         ps.tok = 100                                    // d for decimal
         ps.vlim = skip_dec(ps.src, ps.vlim, ps.lim)
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0)         return handle_unexp(ps)
-        if (ps.vlim > 0)        { ps.pos = pos1; ps.vcount++; return ps.tok }
-        else                    return handle_neg(ps)
+        if (pos1 === 0) return handle_unexp(ps)
+        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
 
       case 91:                                          // [    ARRAY START
       case 123:                                         // {    OBJECT START
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0)                               return handle_unexp(ps)
+        if (pos1 === 0) return handle_unexp(ps)
         ps.pos = pos1
         ps.stack.push(ps.tok)
         return ps.tok
@@ -199,7 +195,7 @@ function next (ps) {
       case 93:                                          // ]    ARRAY END
         if (ps.pos !== ARR_BFV && ps.pos !== ARR_A_V) return handle_unexp(ps)
         ps.stack.pop()
-        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? OBJ_A_V : ARR_A_V;
+        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? OBJ_A_V : ARR_A_V
         ps.vcount++; return ps.tok
 
       case 125:                                         // }    OBJECT END
@@ -233,9 +229,9 @@ function handle_neg (ps) {
   if (ps.vlim >= ps.lim) {
     ps.ecode =
       ps.tok === 100 &&                           // (d)ecimal
-      DECIMAL_END[ps.src[ps.vlim-1]] ?
-        68 :                                      // truncated (D)ecimal (maybe truncated)
-        84                                        // (T)runcated value
+      DECIMAL_END[ps.src[ps.vlim - 1]]
+        ? 68                                      // truncated (D)ecimal (maybe truncated)
+        : 84                                        // (T)runcated value
   } else {
     ps.ecode = 66                                 // (B)ad value
     ps.vlim++
@@ -250,9 +246,9 @@ function handle_unexp (ps) {
 }
 
 function err (msg, ps) {
-  var pobj = Object.keys(ps).reduce(function (m,k) {m[k] = ps[k]; return m}, {})
+  var pobj = Object.keys(ps).reduce(function (m, k) { m[k] = ps[k]; return m }, {})
   if (pobj.src) {
-    pobj.src = Array.from(pobj.src).map(function(c){return String.fromCharCode(c)}).join('')
+    pobj.src = Array.from(pobj.src).map(function (c) { return String.fromCharCode(c) }).join('')
     msg += ': ' + JSON.stringify(pobj)
   }
   var e = new Error(msg)
