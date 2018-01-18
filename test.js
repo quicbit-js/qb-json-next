@@ -23,7 +23,6 @@ function map_ascii (s, code) {
 }
 var NO_LEN_TOKENS = map_ascii('tfn[]{}()', 1)
 
-
 function pos_str(pos) {
   switch (pos) {
     case 0x080: return 'BFV'

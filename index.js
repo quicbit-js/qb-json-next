@@ -14,16 +14,15 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-// PARSE POSITIONS   - LSB (0x7F) are reserved for token ascii value.
-// OBJ_BFK = in object before first key, ARR_A_V = in array after value, ...
-var ARR_BFV = 0x080
-var ARR_B_V = 0x100
-var ARR_A_V = 0x180
-var OBJ_BFK = 0x200
-var OBJ_B_K = 0x280
-var OBJ_A_K = 0x300
-var OBJ_B_V = 0x380
-var OBJ_A_V = 0x400
+// quick parse positions - LSB (0x7F) are reserved for token ascii value.
+var ARR_BFV = 0x080     // in array, before first value
+var ARR_B_V = 0x100     // in array, before value
+var ARR_A_V = 0x180     // in array, after value
+var OBJ_BFK = 0x200     // in object, before first key
+var OBJ_B_K = 0x280     // in object, before key
+var OBJ_A_K = 0x300     // in object, after key
+var OBJ_B_V = 0x380     // in object, before value
+var OBJ_A_V = 0x400     // in object, after value
 
 // create an int-int map from (pos + tok) -- to --> (new pos)
 function pos_map () {
