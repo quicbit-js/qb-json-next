@@ -28,14 +28,14 @@ var POS = {
 
 var TOK = {
   // ascii codes - for all but decimal, token is represented by the first ascii byte encountered
-  ARR:      91,   // '['
-  ARR_END:  93,   // ']'
-  DEC:      100,  // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
-  FAL:      102,  // 'f'
-  NUL:      110,  // 'n'
-  STR:      115,  // 's'  - a string value starting with "
-  TRU:      116,  // 't'
-  OBJ:      123,  // '{'
+  ARR: 91,   // '['
+  ARR_END: 93,   // ']'
+  DEC: 100,  // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
+  FAL: 102,  // 'f'
+  NUL: 110,  // 'n'
+  STR: 115,  // 's'  - a string value starting with "
+  TRU: 116,  // 't'
+  OBJ: 123,  // '{'
   OBJ_END:  125,  // '}'
 }
 

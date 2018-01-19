@@ -20,10 +20,13 @@ var qbnext = require('.')
 
 function src_tokens (ps) {
   var toks = []
-  while (qbnext.next(ps) !== 0) {
-    toks.push(qbnext.tokstr(ps))
-  }
-  toks.push(qbnext.tokstr(ps, true))
+  do {
+    var t = qbnext.next(ps)
+    t === ps.tok || err('bad return token: ' + t)
+    toks.push(qbnext.tokstr(ps, ps.tok === 0))
+  } while (ps.tok)
+  qbnext.tokstr(ps)
+  qbnext.tokstr(ps, true) === toks[toks.length-1] || err('inconsistent last token: ' + toks[toks.length-1])
   return toks.join(',')
 }
 
@@ -38,51 +41,36 @@ test('init', function (t) {
 
 test('next', function (t) {
   t.table_assert([
-    [ 'src',     'iterations', 'exp' ],
-    [ '"a"',     3,            's3@0,!@3:A_AV,!@3:A_AV' ],
-    [ '"a",',    3,            's3@0,!@4:A_BV,!@4:A_BV' ],
-    [ '"a",3',   4,            's3@0,!1@4D:A_BV,!@5:A_BV,!@5:A_BV' ],
-    [ '"a",3,',  4,            's3@0,d1@4,!@6:A_BV,!@6:A_BV' ],
-    [ '"a",3,t', 5,            's3@0,d1@4,!1@6T:A_BV,!@7:A_BV,!@7:A_BV' ],
-    //
-    //   [ '',                                         0,     null,  [ 'B@0,E@0', '0/0/F' ] ],
-    // [ '1',                                        0,     null,  [ 'B@0,d1@0,E@1', '1/0/W' ] ],
-    // [ '1,2,3',                                    0,     null,  [ 'B@0,d1@0,d1@2,d1@4,E@5', '5/2/W' ] ],
-    // [ '[1, 2], 3',                                0,     null,  [ 'B@0,[@0,d1@1,d1@4,]@5,d1@8,E@9', '9/3/W' ] ],
-    // [ '"x"',                                      0,     null,  [ 'B@0,s3@0,E@3', '3/1/W' ] ],
-    // [ '-3.05',                                    0,     null,  [ 'B@0,d5@0,E@5', '5/0/W' ] ],
-    // [ '-3.05',                                    1,     null,  [ 'B@1,d4@1,E@5', '5/0/W' ] ],
-    // [ '\b  true',                                 0,     null,  [ 'B@0,t@3,E@7', '7/1/W' ] ],
-    // [ '  true',                                   0,     null,  [ 'B@0,t@2,E@6', '6/1/W' ] ],
-    // [ 'false',                                    0,     null,  [ 'B@0,f@0,E@5', '5/1/W' ] ],
-    // [ ' false  ',                                 0,     null,  [ 'B@0,f@1,E@8', '8/1/W' ] ],
-    // [ ' false   ',                                1,     null,  [ 'B@1,f@1,E@9', '9/1/W' ] ],
-    // [ '[1, 2, 3]',                                0,     null,  [ 'B@0,[@0,d1@1,d1@4,d1@7,]@8,E@9', '9/4/W' ] ],
-    // [ '[3.05E-2]',                                0,     null,  [ 'B@0,[@0,d7@1,]@8,E@9', '9/2/W' ] ],
-    // [ '[3.05E-2]',                                4,     5,     [ 'B@4,d1@4,E@5', '5/0/W' ] ],
-    // [ '{"a":1}',                                  0,     null,  [ 'B@0,{@0,k3@1:d1@5,}@6,E@7', '7/2/W' ] ],
-    // [ '{"a":1,"b":{}}',                           0,     null,  [ 'B@0,{@0,k3@1:d1@5,k3@7:{@11,}@12,}@13,E@14', '14/3/W' ] ],
-    // [ '{"a"  :1}',                                0,     null,  [ 'B@0,{@0,k3@1:d1@7,}@8,E@9', '9/2/W' ] ],
-    // [ '{ "a" : 1 }',                              0,     null,  [ 'B@0,{@0,k3@2:d1@8,}@10,E@11', '11/2/W' ] ],
-    // [ '"\\""',                                    0,     null,  [ 'B@0,s4@0,E@4', '4/1/W' ] ],
-    // [ '"\\\\"',                                   0,     null,  [ 'B@0,s4@0,E@4', '4/1/W' ] ],
-    // [ '\t\t"x\\a\r"  ',                           0,     null,  [ 'B@0,s6@2,E@10', '10/1/W' ] ],
-    // [ '"\\"x\\"a\r\\""',                          0,     null,  [ 'B@0,s11@0,E@11', '11/1/W' ] ],
-    // [ ' [0,1,2]',                                 0,     null,  [ 'B@0,[@1,d1@2,d1@4,d1@6,]@7,E@8', '8/4/W' ] ],
-    // [ '["a", "bb"] ',                             0,     null,  [ 'B@0,[@0,s3@1,s4@6,]@10,E@12', '12/3/W' ] ],
-    // [ '"x", 4\n, null, 3.2e5 , true, false',      null,  null,  [ 'B@0,s3@0,d1@5,n@9,d5@15,t@23,f@29,E@34', '34/6/W' ] ],
-    // [ '["a",1.3,\n\t{ "b" : ["v", "w"]\n}\t\n ]', null,  null,  [ 'B@0,[@0,s3@1,d3@5,{@11,k3@13:[@19,s3@20,s3@25,]@28,}@30,]@34,E@35', '35/7/W' ] ],
-
-  ], function (src, iterations) {
-    var ps = qbnext.init({src: utf8.buffer(src)})
-
-    var results = []
-    for (var i = 0; i < iterations; i++) {
-      var ret = qbnext.next(ps)
-      ps.tok === ret || err('returned wrong token')
-      results.push(qbnext.tokstr(ps, ps.tok === 0))
-    }
-    return results.join(',')
+    [ 'src',                                      'exp' ],
+    [ '',                                         '!@0:A_BF' ],
+    [ '1',                                        '!1@0D:A_BF' ],
+    [ '1,2,3',                                    'd1@0,d1@2,!1@4D:A_BV' ],
+    [ '[1, 2], 3',                                '[@0,d1@1,d1@4,]@5,!1@8D:A_BV' ],
+    [ '"x"',                                      's3@0,!@3:A_AV' ],
+    [ '-3.05',                                    '!5@0D:A_BF' ],
+    [ '-3.05',                                    '!5@0D:A_BF' ],
+    [ '\b  true',                                 't@3,!@7:A_AV' ],
+    [ '  true',                                   't@2,!@6:A_AV' ],
+    [ 'false',                                    'f@0,!@5:A_AV' ],
+    [ ' false  ',                                 'f@1,!@8:A_AV' ],
+    [ ' false   ',                                'f@1,!@9:A_AV' ],
+    [ '[1, 2, 3]',                                '[@0,d1@1,d1@4,d1@7,]@8,!@9:A_AV' ],
+    [ '[3.05E-2]',                                '[@0,d7@1,]@8,!@9:A_AV' ],
+    [ '[3.05E-2]',                                '[@0,d7@1,]@8,!@9:A_AV' ],
+    [ '{"a":1}',                                  '{@0,k3@1:d1@5,}@6,!@7:A_AV' ],
+    [ '{"a":1,"b":{}}',                           '{@0,k3@1:d1@5,k3@7:{@11,}@12,}@13,!@14:A_AV' ],
+    [ '{"a"  :1}',                                '{@0,k3@1:d1@7,}@8,!@9:A_AV' ],
+    [ '{ "a" : 1 }',                              '{@0,k3@2:d1@8,}@10,!@11:A_AV' ],
+    [ '"\\""',                                    's4@0,!@4:A_AV' ],
+    [ '"\\\\"',                                   's4@0,!@4:A_AV' ],
+    [ '\t\t"x\\a\r"  ',                           's6@2,!@10:A_AV' ],
+    [ '"\\"x\\"a\r\\""',                          's11@0,!@11:A_AV' ],
+    [ ' [0,1,2]',                                 '[@1,d1@2,d1@4,d1@6,]@7,!@8:A_AV' ],
+    [ '["a", "bb"] ',                             '[@0,s3@1,s4@6,]@10,!@12:A_AV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false',      's3@0,d1@5,n@9,d5@15,t@23,f@29,!@34:A_AV' ],
+    [ '["a",1.3,\n\t{ "b" : ["v", "w"]\n}\t\n ]', '[@0,s3@1,d3@5,{@11,k3@13:[@19,s3@20,s3@25,]@28,}@30,]@34,!@35:A_AV' ],
+  ], function (src) {
+    return src_tokens(qbnext.init({src: utf8.buffer(src)}))
   })
 })
 
