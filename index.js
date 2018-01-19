@@ -26,6 +26,28 @@ var POS = {
   O_AV: 0x400,   // in object, after value
 }
 
+var TOK = {
+  // ascii codes - for all but decimal, token is represented by the first ascii byte encountered
+  ARR:      91,   // '['
+  ARR_END:  93,   // ']'
+  DEC:      100,  // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
+  FAL:      102,  // 'f'
+  NUL:      110,  // 'n'
+  STR:      115,  // 's'  - a string value starting with "
+  TRU:      116,  // 't'
+  OBJ:      123,  // '{'
+  OBJ_END:  125,  // '}'
+}
+
+var ECODE = {
+  // for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
+  // and ps.ecode will be one of the following:
+  BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
+  TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
+  TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
+  UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
+}
+
 var POS2NAME = Object.keys(POS).reduce(function (a, n) { a[POS[n]] = n; return a }, [])
 
 function posname (pos) { return POS2NAME[pos] || '???' }
@@ -213,7 +235,7 @@ function next (ps) {
 
       default:
         --ps.vlim
-        ps.ecode = 66           // (B)ad value
+        ps.ecode = TOK.BAD_VAL           // (B)ad value
         return end_src(ps)
     }
   }
@@ -228,19 +250,19 @@ function next (ps) {
 
 function end_src (ps) {
   if (ps.koff === ps.klim) { ps.koff = ps.klim = ps.voff }  // simplify state
-  return ps.tok = 69    // End
+  return ps.tok = 0    // End
 }
 
 function handle_neg (ps) {
   ps.vlim = -ps.vlim
   if (ps.vlim >= ps.lim) {
     ps.ecode =
-      ps.tok === 100 &&                           // (d)ecimal
+      ps.tok === TOK.DEC &&
       DECIMAL_END[ps.src[ps.vlim - 1]]
-        ? 68                                      // truncated (D)ecimal (maybe truncated)
-        : 84                                        // (T)runcated value
+        ? ECODE.TRUNC_DEC
+        : ECODE.TRUNCATED
   } else {
-    ps.ecode = 66                                 // (B)ad value
+    ps.ecode = ECODE.BAD_VALUE
     ps.vlim++
   }
   return end_src(ps)
@@ -248,7 +270,7 @@ function handle_neg (ps) {
 
 function handle_unexp (ps) {
   if (ps.vlim < 0) { ps.vlim = -ps.vlim }
-  ps.ecode = 85                                   // (U)nexpected value
+  ps.ecode = ECODE.UNEXPECTED
   return end_src(ps)
 }
 
@@ -267,10 +289,10 @@ function tokstr (ps, detail) {
   var keystr = ps.koff === ps.klim ? '' : 'k' + (ps.klim - ps.koff) + '@' + ps.koff + ':'
   var vlen = (NO_LEN_TOKENS[ps.tok] || ps.vlim === ps.voff) ? '' : ps.vlim - ps.voff
 
-  var tchar = ps.tok && String.fromCharCode(ps.tok) || ''
+  var tchar = ps.tok && String.fromCharCode(ps.tok) || '!'
   var ret = keystr + tchar + vlen + '@' + ps.voff
   if (ps.ecode) {
-    ret += '!' + String.fromCharCode(ps.ecode)
+    ret += String.fromCharCode(ps.ecode)
   }
   if (detail) {
     ret += ':' + posname(ps.pos)
@@ -285,4 +307,7 @@ module.exports = {
   next: next,
   tokstr: tokstr,
   posname: posname,
+  TOK: TOK,
+  POS: POS,
+  ECODE: ECODE,
 }
