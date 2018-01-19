@@ -15,14 +15,21 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 // quick parse positions - LSB (0x7F) are reserved for token ascii value.
-var ARR_BFV = 0x080     // in array, before first value
-var ARR_B_V = 0x100     // in array, before value
-var ARR_A_V = 0x180     // in array, after value
-var OBJ_BFK = 0x200     // in object, before first key
-var OBJ_B_K = 0x280     // in object, before key
-var OBJ_A_K = 0x300     // in object, after key
-var OBJ_B_V = 0x380     // in object, before value
-var OBJ_A_V = 0x400     // in object, after value
+var POS = {
+  A_BF: 0x080,   // in array, before first value
+  A_BV: 0x100,   // in array, before value
+  A_AV: 0x180,   // in array, after value
+  O_BF: 0x200,   // in object, before first key
+  O_BK: 0x280,   // in object, before key
+  O_AK: 0x300,   // in object, after key
+  O_BV: 0x380,   // in object, before value
+  O_AV: 0x400,   // in object, after value
+}
+
+var POS2NAME = Object.keys(POS).reduce(function (a,n) { a[POS[n]] = n; return a }, [])
+
+function posname (pos) {
+  return POS2NAME[pos] || '???' }
 
 // create an int-int map from (pos + tok) -- to --> (new pos)
 function pos_map () {
@@ -45,16 +52,16 @@ function pos_map () {
 
   // 0 = no context (comma separated values)
   // (s0 ctxs +       s0 positions + tokens) -> s1
-  map([ARR_BFV, ARR_B_V], val, ARR_A_V)
-  map([ARR_A_V], ',', ARR_B_V)
+  map([POS.A_BF, POS.A_BV], val, POS.A_AV)
+  map([POS.A_AV], ',', POS.A_BV)
 
-  map([ARR_BFV, ARR_B_V, OBJ_B_V], '[', ARR_BFV)
-  map([ARR_BFV, ARR_B_V, OBJ_B_V], '{', OBJ_BFK)
+  map([POS.A_BF, POS.A_BV, POS.O_BV], '[', POS.A_BF)
+  map([POS.A_BF, POS.A_BV, POS.O_BV], '{', POS.O_BF)
 
-  map([OBJ_A_V], ',', OBJ_B_K)
-  map([OBJ_BFK, OBJ_B_K], 's', OBJ_A_K)      // s = string
-  map([OBJ_A_K], ':', OBJ_B_V)
-  map([OBJ_B_V], val, OBJ_A_V)
+  map([POS.O_AV], ',', POS.O_BK)
+  map([POS.O_BF, POS.O_BK], 's', POS.O_AK)      // s = string
+  map([POS.O_AK], ':', POS.O_BV)
+  map([POS.O_BV], val, POS.O_AV)
 
   // ending of object and array '}' and ']' are handled by checking the stack
   return ret
@@ -82,6 +89,8 @@ var DELIM = ascii_to_code('\b\f\n\t\r ,:{}[]', 1)
 var DECIMAL_END = ascii_to_code('0123456789', 1)
 var DECIMAL_ASCII = ascii_to_code('-0123456789+.eE', 1)
 var TOK_BYTES = ascii_to_bytes({ f: 'alse', t: 'rue', n: 'ull' })
+var NO_LEN_TOKENS = ascii_to_code('tfn[]{}()', 1)
+
 
 // skip as many bytes of src that match bsrc, up to lim.
 // return
@@ -126,7 +135,7 @@ function init (ps) {
   ps.vlim = ps.vlim || ps.voff
   ps.tok = ps.tok || 0                                      // token/byte being handled
   ps.stack = ps.stack || []                         // ascii codes 91 and 123 for array / object depth
-  ps.pos = ps.pos || ARR_BFV                        // container context and relative position encoded as an int
+  ps.pos = ps.pos || POS.A_BF                        // container context and relative position encoded as an int
   ps.ecode = ps.ecode || 0
   ps.vcount = ps.vcount || 0                        // number of complete values parsed
   return ps
@@ -158,7 +167,7 @@ function next (ps) {
         ps.vlim = skip_str(ps.src, ps.vlim, ps.lim)
         pos1 = POS_MAP[ps.pos | ps.tok]
         if (pos1 === 0) return handle_unexp(ps)
-        if (pos1 === OBJ_A_K) {
+        if (pos1 === POS.O_AK) {
           // key
           ps.koff = ps.voff
           if (ps.vlim > 0) { ps.pos = pos1; ps.klim = ps.voff = ps.vlim; continue } else { ps.klim = ps.voff = -ps.vlim; return handle_neg(ps) }
@@ -193,15 +202,15 @@ function next (ps) {
         return ps.tok
 
       case 93:                                          // ]    ARRAY END
-        if (ps.pos !== ARR_BFV && ps.pos !== ARR_A_V) return handle_unexp(ps)
+        if (ps.pos !== POS.A_BF && ps.pos !== POS.A_AV) return handle_unexp(ps)
         ps.stack.pop()
-        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? OBJ_A_V : ARR_A_V
+        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
 
       case 125:                                         // }    OBJECT END
-        if (ps.pos !== OBJ_BFK && ps.pos !== OBJ_A_V) return handle_unexp(ps)
+        if (ps.pos !== POS.O_BF && ps.pos !== POS.O_AV) return handle_unexp(ps)
         ps.stack.pop()
-        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? OBJ_A_V : ARR_A_V
+        ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
 
       default:
@@ -256,7 +265,25 @@ function err (msg, ps) {
   throw e
 }
 
+function tokstr (ps) {
+  var keystr = ps.koff === ps.klim ? '' : 'k' + (ps.klim - ps.koff) + '@' + ps.koff + ':'
+  var vlen = (NO_LEN_TOKENS[ps.tok] || ps.vlim === ps.voff) ? '' : ps.vlim - ps.voff
+
+  var ret = keystr + String.fromCharCode(ps.tok) + vlen + '@' + ps.voff
+  if (ps.ecode) {
+    ret += '!' + String.fromCharCode(ps.ecode)
+  }
+  if (ps.tok === 69) {
+    ret += ':' + posname(ps.pos)
+    if (ps.stack.length) {
+      ret += ':' + ps.stack.map(function (c) { return String.fromCharCode(c) }).join('')
+    }
+  }
+  return ret
+}
 module.exports = {
   init: init,
   next: next,
+  tokstr: tokstr,
+  posname: posname,
 }
