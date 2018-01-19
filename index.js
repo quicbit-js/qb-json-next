@@ -26,10 +26,9 @@ var POS = {
   O_AV: 0x400,   // in object, after value
 }
 
-var POS2NAME = Object.keys(POS).reduce(function (a,n) { a[POS[n]] = n; return a }, [])
+var POS2NAME = Object.keys(POS).reduce(function (a, n) { a[POS[n]] = n; return a }, [])
 
-function posname (pos) {
-  return POS2NAME[pos] || '???' }
+function posname (pos) { return POS2NAME[pos] || '???' }
 
 // create an int-int map from (pos + tok) -- to --> (new pos)
 function pos_map () {
@@ -90,7 +89,6 @@ var DECIMAL_END = ascii_to_code('0123456789', 1)
 var DECIMAL_ASCII = ascii_to_code('-0123456789+.eE', 1)
 var TOK_BYTES = ascii_to_bytes({ f: 'alse', t: 'rue', n: 'ull' })
 var NO_LEN_TOKENS = ascii_to_code('tfn[]{}()', 1)
-
 
 // skip as many bytes of src that match bsrc, up to lim.
 // return
@@ -265,15 +263,16 @@ function err (msg, ps) {
   throw e
 }
 
-function tokstr (ps) {
+function tokstr (ps, detail) {
   var keystr = ps.koff === ps.klim ? '' : 'k' + (ps.klim - ps.koff) + '@' + ps.koff + ':'
   var vlen = (NO_LEN_TOKENS[ps.tok] || ps.vlim === ps.voff) ? '' : ps.vlim - ps.voff
 
-  var ret = keystr + String.fromCharCode(ps.tok) + vlen + '@' + ps.voff
+  var tchar = ps.tok && String.fromCharCode(ps.tok) || ''
+  var ret = keystr + tchar + vlen + '@' + ps.voff
   if (ps.ecode) {
     ret += '!' + String.fromCharCode(ps.ecode)
   }
-  if (ps.tok === 69) {
+  if (detail) {
     ret += ':' + posname(ps.pos)
     if (ps.stack.length) {
       ret += ':' + ps.stack.map(function (c) { return String.fromCharCode(c) }).join('')
