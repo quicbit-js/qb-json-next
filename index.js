@@ -149,15 +149,15 @@ function skip_dec (src, off, lim) {
 function init (ps) {
   ps.src || err('missing src property', ps)
   ps.lim = ps.lim == null ? ps.src.length : ps.lim
-  ps.koff = ps.koff || ps.klim || ps.voff || ps.vlim || 0   // key offset
-  ps.klim = ps.klim || ps.koff                              // key limit (exclusive)
-  ps.voff = ps.voff || ps.klim
-  ps.vlim = ps.vlim || ps.voff
-  ps.tok = ps.tok || 0                                      // token/byte being handled
-  ps.stack = ps.stack || []                         // ascii codes 91 and 123 for array / object depth
-  ps.pos = ps.pos || POS.A_BF                        // container context and relative position encoded as an int
-  ps.ecode = ps.ecode || 0
-  ps.vcount = ps.vcount || 0                        // number of complete values parsed
+  ps.koff = ps.koff || 0                  // key offset
+  ps.klim = ps.klim || ps.koff            // key limit
+  ps.voff = ps.voff || ps.klim            // value offset
+  ps.vlim = ps.vlim || ps.voff            // value limit
+  ps.tok = ps.tok || 0                    // token/byte being handled
+  ps.stack = ps.stack || []               // ascii codes 91 and 123 for array / object depth
+  ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
+  ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
+  ps.vcount = ps.vcount || 0              // number of complete values parsed
   return ps
 }
 
@@ -275,12 +275,7 @@ function handle_unexp (ps) {
 }
 
 function err (msg, ps) {
-  var pobj = Object.keys(ps).reduce(function (m, k) { m[k] = ps[k]; return m }, {})
-  if (pobj.src) {
-    pobj.src = Array.from(pobj.src).map(function (c) { return String.fromCharCode(c) }).join('')
-    msg += ': ' + JSON.stringify(pobj)
-  }
-  var e = new Error(msg)
+  var e = new Error(msg + ': ' + tokstr(ps, true))
   e.parse_state = ps
   throw e
 }
@@ -296,7 +291,7 @@ function tokstr (ps, detail) {
   }
   if (detail) {
     ret += ':' + posname(ps.pos)
-    if (ps.stack.length) {
+    if (ps.stack && ps.stack.length) {
       ret += ':' + ps.stack.map(function (c) { return String.fromCharCode(c) }).join('')
     }
   }

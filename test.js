@@ -38,6 +38,38 @@ test('init', function (t) {
   ], function (ps) { return qbnext.tokstr(qbnext.init(ps), true) })
 })
 
+test('init - error', function (t) {
+  t.table_assert([
+    [ 'ps',                     'exp' ],
+    [ {},              /missing src property/ ],
+  ], qbnext.init, {assert: 'throws'} )
+})
+
+test('next - lim', function (t) {
+  t.table_assert([
+    [ 'src',                                  'lim', 'exp' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 0,     '!@0:A_BF' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 1,     '!1@0T:A_BF' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 2,     '!2@0T:A_BF' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 3,     's3@0,!@3:A_AV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 4,     's3@0,!@4:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 5,     's3@0,!@5:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 6,     's3@0,!1@5D:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 7,     's3@0,d1@5,!@7:A_AV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 8,     's3@0,d1@5,!@8:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 9,     's3@0,d1@5,!@9:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 10,    's3@0,d1@5,!1@9T:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 15,    's3@0,d1@5,n@9,!@15:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 20,    's3@0,d1@5,n@9,!5@15D:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 25,    's3@0,d1@5,n@9,d5@15,!2@23T:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 30,    's3@0,d1@5,n@9,d5@15,t@23,!1@29T:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 35,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35:A_BV' ],
+    [ '"x", 4\n, null, 3.2e5 , true, false,', 50,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35B:A_BV' ],
+  ], function (src, lim) {
+    return src_tokens(qbnext.init({src: utf8.buffer(src), lim: lim}))
+  })
+})
+
 test('next - basic', function (t) {
   t.table_assert([
     [ 'src',                                      'exp' ],
@@ -46,7 +78,6 @@ test('next - basic', function (t) {
     [ '1,2,3',                                    'd1@0,d1@2,!1@4D:A_BV' ],
     [ '[1, 2], 3',                                '[@0,d1@1,d1@4,]@5,!1@8D:A_BV' ],
     [ '"x"',                                      's3@0,!@3:A_AV' ],
-    [ '-3.05',                                    '!5@0D:A_BF' ],
     [ '-3.05',                                    '!5@0D:A_BF' ],
     [ '\b  true',                                 't@3,!@7:A_AV' ],
     [ '  true',                                   't@2,!@6:A_AV' ],
