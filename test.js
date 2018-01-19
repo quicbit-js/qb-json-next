@@ -25,7 +25,6 @@ function src_tokens (ps) {
     t === ps.tok || err('bad return token: ' + t)
     toks.push(qbnext.tokstr(ps, ps.tok === 0))
   } while (ps.tok)
-  qbnext.tokstr(ps)
   qbnext.tokstr(ps, true) === toks[toks.length-1] || err('inconsistent last token: ' + toks[toks.length-1])
   return toks.join(',')
 }
@@ -39,7 +38,7 @@ test('init', function (t) {
   ], function (ps) { return qbnext.tokstr(qbnext.init(ps), true) })
 })
 
-test('next', function (t) {
+test('next - basic', function (t) {
   t.table_assert([
     [ 'src',                                      'exp' ],
     [ '',                                         '!@0:A_BF' ],
@@ -224,6 +223,61 @@ test('incremental object', function (t) {
   ], function (src1, src2) {
     return parse_split([src1, src2])
   })
+})
+
+test('next - incomplete', function (t) {
+  t.table_assert([
+    [ 'src',         'exp' ],
+    [ '1, 2,',       'd1@0,d1@3,!@5:A_BV' ],
+    [ '[1, 2, ',     '[@0,d1@1,d1@4,!@7:A_BV:[' ],
+    [ 'fal',         '!3@0T:A_BF' ],
+    [ '"ab',         '!3@0T:A_BF' ],
+    [ '{"ab":',      '{@0,k4@1:!@6:O_BV:{' ],
+    [ '"\\\\\\"',    '!5@0T:A_BF' ],
+    [ '[3.05E-2',    '[@0,!7@1D:A_BF:[' ],
+    [ '[3.05E-2,4.', '[@0,d7@1,!2@9T:A_BV:[' ],
+    [ '{"a',         '{@0,k2@1:!@3T:O_BF:{' ],
+    [ '{"a": ',      '{@0,k3@1:!@6:O_BV:{' ],
+  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+})
+
+test('next - bad value', function (t) {
+  t.table_assert([
+    [ 'src',        'exp' ],
+    [ '{"a"q',      '{@0,k3@1:!@4B:O_AK:{' ],
+    [ '{"a":q',     '{@0,k3@1:!@5B:O_BV:{' ],
+    [ '{"a": q',    '{@0,k3@1:!@6B:O_BV:{' ],
+    [ '{"a" :  q',  '{@0,k3@1:!@8B:O_BV:{' ],
+    [ '0*',         '!2@0B:A_BF' ],
+    [ '1, 2.4n',    'd1@0,!4@3B:A_BV' ],
+    [ '{"a": 3^6}', '{@0,k3@1:!2@6B:O_BV:{' ],
+    [ ' 1f',        '!2@1B:A_BF' ],
+    [ '{"a": t,',   '{@0,k3@1:!2@6B:O_BV:{' ],
+  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+})
+
+test('next - unexpected value', function (t) {
+  t.table_assert([
+    [ 'src',              'exp' ],
+    [ '"a""b"',           's3@0,!3@3U:A_AV' ],
+    [ '{"a"]',            '{@0,k3@1:!1@4U:O_AK:{' ],
+    [ '{"a""b"}',         '{@0,k3@1:!3@4U:O_AK:{' ],
+    [ '{"a": "b"]',       '{@0,k3@1:s3@6,!1@9U:O_AV:{' ],
+    [ '["a", "b"}',       '[@0,s3@1,s3@6,!1@9U:A_AV:[' ],
+    [ '0{',               'd1@0,!1@1U:A_AV' ],
+    [ '{"a"::',           '{@0,k3@1:!1@5U:O_BV:{' ],
+    [ '{ false:',         '{@0,!5@2U:O_BF:{' ],
+    [ '{ fal',            '{@0,!3@2U:O_BF:{' ],
+    [ '{ fal:',           '{@0,!3@2U:O_BF:{' ],
+    [ '{"a": "b", 3: 4}', '{@0,k3@1:s3@6,!1@11U:O_BK:{' ],
+    [ '{ "a"]',           '{@0,k3@2:!1@5U:O_AK:{' ],
+    [ '{ "a" ]',          '{@0,k3@2:!1@6U:O_AK:{' ],
+    [ '{ "a":]',          '{@0,k3@2:!1@6U:O_BV:{' ],
+    [ '{ "a": ]',         '{@0,k3@2:!1@7U:O_BV:{' ],
+    [ '{ 2.4',            '{@0,!3@2U:O_BF:{' ],
+    [ '[ 1, 2 ] "c',      '[@0,d1@2,d1@5,]@7,!2@9U:A_AV' ],
+    [ '[ 1, 2 ] "c"',     '[@0,d1@2,d1@5,]@7,!3@9U:A_AV' ],
+  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
 })
 
 function parse_split (sources) {

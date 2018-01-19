@@ -235,7 +235,7 @@ function next (ps) {
 
       default:
         --ps.vlim
-        ps.ecode = TOK.BAD_VAL           // (B)ad value
+        ps.ecode = ECODE.BAD_VALUE
         return end_src(ps)
     }
   }
