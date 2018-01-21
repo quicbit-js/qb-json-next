@@ -19,6 +19,7 @@ var utf8 = require('qb-utf8-ez')
 var next = require('.')
 
 function src_tokens (ps) {
+  next.init(ps)
   var toks = []
   do {
     var t = next(ps)
@@ -36,13 +37,6 @@ test('init', function (t) {
     [ 'ps',                     'exp' ],
     [ {src: [99]},              '!@0:A_BF' ],
   ], function (ps) { return next.tokstr(next.init(ps), true) })
-})
-
-test('init - error', function (t) {
-  t.table_assert([
-    [ 'ps',                     'exp' ],
-    [ {},              /missing src property/ ],
-  ], next.init, {assert: 'throws'} )
 })
 
 test('next - with lim', function (t) {
@@ -312,15 +306,12 @@ test('next - unexpected value', function (t) {
 })
 
 function parse_split (sources) {
-  var results = []
-  var ps = next.init({src: utf8.buffer(sources.shift())})
-  results.push(src_tokens(ps))
-
+  var ret = []
+  var ps = {}
   while (sources.length) {
-    ps.src = utf8.buffer(sources.shift())
-    ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = ps.ecode = 0
-    ps.lim = ps.src.length
-    results.push(src_tokens(ps))
+    var toks = []
+    ps.next_src = utf8.buffer(sources.shift())
+    ret.push(src_tokens(ps))
   }
-  return results
+  return ret
 }

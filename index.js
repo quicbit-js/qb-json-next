@@ -147,7 +147,8 @@ function skip_dec (src, off, lim) {
 }
 
 function init (ps) {
-  ps.src || err('missing src property', ps)
+  ps.src = ps.src || []
+  if (ps.next_src) { next_src(ps) }
   ps.lim = ps.lim == null ? ps.src.length : ps.lim
   ps.koff = ps.koff || 0                  // key offset
   ps.klim = ps.klim || ps.koff            // key limit
@@ -159,6 +160,16 @@ function init (ps) {
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
   return ps
+}
+
+function next_src (ps) {
+  !ps.ecode || (ps.ecode === TOK.TRUNC_DEC && !DECIMAL_ASCII[ps.next_src[ps.vlim]]) || err('state not ready for next src', ps)
+  ps.pos !== POS.O_AK && ps.pos !== POS.O_BV || err('position not ok for next src', ps)
+  ps.src == null || ps.src.vlim === ps.src.lim || err('src not finished, not ready for next src')
+  ps.src = ps.next_src
+  ps.next_src = null
+  ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = 0
+  ps.lim = ps.src.length
 }
 
 function next (ps) {
