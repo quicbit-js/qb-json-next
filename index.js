@@ -14,7 +14,7 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-// quick parse positions - LSB (0x7F) are reserved for token ascii value.
+// values for ps.pos(ition).  LSB (0x7F) are reserved for token ascii value.
 var POS = {
   A_BF: 0x080,   // in array, before first value
   A_BV: 0x100,   // in array, before value
@@ -26,22 +26,22 @@ var POS = {
   O_AV: 0x400,   // in object, after value
 }
 
+// values for ps.tok(en).  All but string and decimal are represented by the first ascii byte encountered
 var TOK = {
-  // ascii codes - for all but decimal, token is represented by the first ascii byte encountered
-  ARR: 91,   // '['
-  ARR_END: 93,   // ']'
-  DEC: 100,  // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
-  FAL: 102,  // 'f'
-  NUL: 110,  // 'n'
-  STR: 115,  // 's'  - a string value starting with "
-  TRU: 116,  // 't'
-  OBJ: 123,  // '{'
+  ARR: 91,        // '['
+  ARR_END: 93,    // ']'
+  DEC: 100,       // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
+  FAL: 102,       // 'f'
+  NUL: 110,       // 'n'
+  STR: 115,       // 's'  - a string value starting with "
+  TRU: 116,       // 't'
+  OBJ: 123,       // '{'
   OBJ_END:  125,  // '}'
 }
 
+// for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
+// and ps.ecode will be one of the following:
 var ECODE = {
-  // for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
-  // and ps.ecode will be one of the following:
   BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
   TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
   TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
@@ -168,11 +168,12 @@ function next_src (ps) {
   ps.src == null || ps.src.vlim === ps.src.lim || err('src not finished, not ready for next src')
   ps.src = ps.next_src
   ps.next_src = null
-  ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = 0
+  ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = ps.ecode = 0
   ps.lim = ps.src.length
 }
 
 function next (ps) {
+  if (!ps.pos) { init(ps) }
   ps.koff = ps.klim
   ps.voff = ps.vlim
   var pos1 = ps.pos
@@ -260,6 +261,10 @@ function next (ps) {
 }
 
 function end_src (ps) {
+  if (ps.next_src) {
+    next_src(ps)
+    return next(ps)
+  }
   if (ps.koff === ps.klim) { ps.koff = ps.klim = ps.voff }  // simplify state
   return ps.tok = 0    // End
 }
@@ -309,7 +314,6 @@ function tokstr (ps, detail) {
   return ret
 }
 
-next.init = init
 next.next = next
 next.tokstr = tokstr
 next.posname = posname
