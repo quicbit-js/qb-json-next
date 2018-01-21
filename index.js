@@ -253,7 +253,6 @@ function next (ps) {
   }
 
   // reached src limit without error or truncation
-  ps.ecode = 0
   if (NON_TOKEN[ps.tok]) {
     ps.voff = ps.vlim
   }
