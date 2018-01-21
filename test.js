@@ -21,7 +21,7 @@ var next = require('.')
 function src_tokens (ps) {
   var toks = []
   do {
-    var t = next.next(ps)
+    var t = next(ps)
     t === ps.tok || err('bad return token: ' + t)
     toks.push(next.tokstr(ps, ps.tok === 0))
   } while (ps.tok)
