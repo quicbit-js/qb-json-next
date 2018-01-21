@@ -148,7 +148,6 @@ function skip_dec (src, off, lim) {
 
 function init (ps) {
   ps.src = ps.src || []
-  if (ps.next_src) { next_src(ps) }
   ps.lim = ps.lim == null ? ps.src.length : ps.lim
   ps.koff = ps.koff || 0                  // key offset
   ps.klim = ps.klim || ps.koff            // key limit
@@ -159,17 +158,26 @@ function init (ps) {
   ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
+  if (ps.next_src) { next_src(ps) }
   return ps
 }
 
+// switch ps.src to ps.next_src if conditions are right (ps.src is null or is complete without errors)
 function next_src (ps) {
-  !ps.ecode || (ps.ecode === TOK.TRUNC_DEC && !DECIMAL_ASCII[ps.next_src[ps.vlim]]) || err('state not ready for next src', ps)
-  ps.pos !== POS.O_AK && ps.pos !== POS.O_BV || err('position not ok for next src', ps)
-  ps.src == null || ps.src.vlim === ps.src.lim || err('src not finished, not ready for next src')
+  if (ps.ecode || (ps.src && ps.vlim < ps.lim)) {
+    return false
+  }
+  if (ps.next_src.length === 0) {
+    ps.next_src = null
+    return false
+  }
+  ps.pos !== POS.O_AK && ps.pos !== POS.O_BV || err('next_src does not handle split key/values', ps)
+
   ps.src = ps.next_src
   ps.next_src = null
   ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = ps.ecode = 0
   ps.lim = ps.src.length
+  return true
 }
 
 function next (ps) {
@@ -260,10 +268,7 @@ function next (ps) {
 }
 
 function end_src (ps) {
-  if (ps.next_src) {
-    next_src(ps)
-    return next(ps)
-  }
+  if (ps.next_src && next_src(ps)) { return next(ps) }
   if (ps.koff === ps.klim) { ps.koff = ps.klim = ps.voff }  // simplify state
   return ps.tok = 0    // End
 }
@@ -320,6 +325,7 @@ next.TOK = TOK
 next.POS = POS
 next.ECODE = ECODE
 
+next._init = init
 next._skip_str = skip_str
 next._skip_dec = skip_dec
 next._skip_bytes = skip_bytes
