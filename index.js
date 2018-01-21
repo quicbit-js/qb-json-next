@@ -306,4 +306,9 @@ next.TOK = TOK
 next.POS = POS
 next.ECODE = ECODE
 
+next._skip_str = skip_str
+next._skip_dec = skip_dec
+next._skip_bytes = skip_bytes
+next._TOK_BYTES = TOK_BYTES
+
 module.exports = next

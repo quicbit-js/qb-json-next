@@ -45,7 +45,7 @@ test('init - error', function (t) {
   ], next.init, {assert: 'throws'} )
 })
 
-test('next - lim', function (t) {
+test('next - with lim', function (t) {
   t.table_assert([
     [ 'src',                                  'lim', 'exp' ],
     [ '"x", 4\n, null, 3.2e5 , true, false,', 0,     '!@0:A_BF' ],
@@ -70,7 +70,7 @@ test('next - lim', function (t) {
   })
 })
 
-test('next - basic', function (t) {
+test('next - various', function (t) {
   t.table_assert([
     [ 'src',                                      'exp' ],
     [ '',                                         '!@0:A_BF' ],
