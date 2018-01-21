@@ -16,16 +16,16 @@
 
 var test = require('test-kit').tape()
 var utf8 = require('qb-utf8-ez')
-var qbnext = require('.')
+var next = require('.')
 
 function src_tokens (ps) {
   var toks = []
   do {
-    var t = qbnext.next(ps)
+    var t = next.next(ps)
     t === ps.tok || err('bad return token: ' + t)
-    toks.push(qbnext.tokstr(ps, ps.tok === 0))
+    toks.push(next.tokstr(ps, ps.tok === 0))
   } while (ps.tok)
-  qbnext.tokstr(ps, true) === toks[toks.length-1] || err('inconsistent last token: ' + toks[toks.length-1])
+  next.tokstr(ps, true) === toks[toks.length-1] || err('inconsistent last token: ' + toks[toks.length-1])
   return toks.join(',')
 }
 
@@ -35,14 +35,14 @@ test('init', function (t) {
   t.table_assert([
     [ 'ps',                     'exp' ],
     [ {src: [99]},              '!@0:A_BF' ],
-  ], function (ps) { return qbnext.tokstr(qbnext.init(ps), true) })
+  ], function (ps) { return next.tokstr(next.init(ps), true) })
 })
 
 test('init - error', function (t) {
   t.table_assert([
     [ 'ps',                     'exp' ],
     [ {},              /missing src property/ ],
-  ], qbnext.init, {assert: 'throws'} )
+  ], next.init, {assert: 'throws'} )
 })
 
 test('next - lim', function (t) {
@@ -66,7 +66,7 @@ test('next - lim', function (t) {
     [ '"x", 4\n, null, 3.2e5 , true, false,', 35,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35:A_BV' ],
     [ '"x", 4\n, null, 3.2e5 , true, false,', 50,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35B:A_BV' ],
   ], function (src, lim) {
-    return src_tokens(qbnext.init({src: utf8.buffer(src), lim: lim}))
+    return src_tokens(next.init({src: utf8.buffer(src), lim: lim}))
   })
 })
 
@@ -100,7 +100,7 @@ test('next - basic', function (t) {
     [ '"x", 4\n, null, 3.2e5 , true, false',      's3@0,d1@5,n@9,d5@15,t@23,f@29,!@34:A_AV' ],
     [ '["a",1.3,\n\t{ "b" : ["v", "w"]\n}\t\n ]', '[@0,s3@1,d3@5,{@11,k3@13:[@19,s3@20,s3@25,]@28,}@30,]@34,!@35:A_AV' ],
   ], function (src) {
-    return src_tokens(qbnext.init({src: utf8.buffer(src)}))
+    return src_tokens(next.init({src: utf8.buffer(src)}))
   })
 })
 
@@ -123,7 +123,7 @@ test('object - no spaces', function (t) {
       [ '{"a":71,"b":',   '{@0,k3@1:d2@5,k3@8:!@12:O_BV:{' ],
       [ '{"a":71,"b":2',  '{@0,k3@1:d2@5,k3@8:!1@12D:O_BV:{' ],
       [ '{"a":71,"b":2}', '{@0,k3@1:d2@5,k3@8:d1@12,}@13,!@14:A_AV' ],
-    ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+    ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('array - no spaces', function (t) {
@@ -142,7 +142,7 @@ test('array - no spaces', function (t) {
       [ '[83,"a",',   '[@0,d2@1,s3@4,!@8:A_BV:[' ],
       [ '[83,"a",2',  '[@0,d2@1,s3@4,!1@8D:A_BV:[' ],
       [ '[83,"a",2]', '[@0,d2@1,s3@4,d1@8,]@9,!@10:A_AV' ],
-    ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+    ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('array - spaces', function (t) {
@@ -165,7 +165,7 @@ test('array - spaces', function (t) {
       [ '[ 83, "a" , 2',   '[@0,d2@2,s3@6,!1@12D:A_BV:[' ],
       [ '[ 83, "a" , 2 ',  '[@0,d2@2,s3@6,d1@12,!@14:A_AV:[' ],
       [ '[ 83, "a" , 2 ]', '[@0,d2@2,s3@6,d1@12,]@14,!@15:A_AV' ],
-    ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+    ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('object - spaces', function (t) {
@@ -191,7 +191,7 @@ test('object - spaces', function (t) {
       [ ' { "a" : "x',    '{@1,k3@3:!2@9T:O_BV:{' ],
       [ ' { "a" : "x" ',  '{@1,k3@3:s3@9,!@13:O_AV:{' ],
       [ ' { "a" : "x" }', '{@1,k3@3:s3@9,}@13,!@14:A_AV' ],
-    ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+    ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('incremental array', function (t) {
@@ -269,7 +269,7 @@ test('next - incomplete', function (t) {
     [ '[3.05E-2,4.', '[@0,d7@1,!2@9T:A_BV:[' ],
     [ '{"a',         '{@0,k2@1:!@3T:O_BF:{' ],
     [ '{"a": ',      '{@0,k3@1:!@6:O_BV:{' ],
-  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+  ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('next - bad value', function (t) {
@@ -284,7 +284,7 @@ test('next - bad value', function (t) {
     [ '{"a": 3^6}', '{@0,k3@1:!2@6B:O_BV:{' ],
     [ ' 1f',        '!2@1B:A_BF' ],
     [ '{"a": t,',   '{@0,k3@1:!2@6B:O_BV:{' ],
-  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+  ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 test('next - unexpected value', function (t) {
@@ -308,12 +308,12 @@ test('next - unexpected value', function (t) {
     [ '{ 2.4',            '{@0,!3@2U:O_BF:{' ],
     [ '[ 1, 2 ] "c',      '[@0,d1@2,d1@5,]@7,!2@9U:A_AV' ],
     [ '[ 1, 2 ] "c"',     '[@0,d1@2,d1@5,]@7,!3@9U:A_AV' ],
-  ], function (src) { return src_tokens(qbnext.init({src: utf8.buffer(src)})) })
+  ], function (src) { return src_tokens(next.init({src: utf8.buffer(src)})) })
 })
 
 function parse_split (sources) {
   var results = []
-  var ps = qbnext.init({src: utf8.buffer(sources.shift())})
+  var ps = next.init({src: utf8.buffer(sources.shift())})
   results.push(src_tokens(ps))
 
   while (sources.length) {

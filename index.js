@@ -297,12 +297,13 @@ function tokstr (ps, detail) {
   }
   return ret
 }
-module.exports = {
-  init: init,
-  next: next,
-  tokstr: tokstr,
-  posname: posname,
-  TOK: TOK,
-  POS: POS,
-  ECODE: ECODE,
-}
+
+next.init = init
+next.next = next
+next.tokstr = tokstr
+next.posname = posname
+next.TOK = TOK
+next.POS = POS
+next.ECODE = ECODE
+
+module.exports = next
