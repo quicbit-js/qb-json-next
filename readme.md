@@ -86,7 +86,7 @@ it cannot continue after part of a key, value or key without the subsequent valu
     '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
     '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
     
-Note that **the module qb-json-align supports continued parsing from any split buffer** including truncated keys and values.  
+Note that **the module [qb-json-align](https://github.com/quicbit-js/qb-json-align) supports continued parsing from any split buffer** including truncated keys and values.  
 It's simple to use - just call align(ps) after setting ps.next_src and before calling next(ps) and split values are handled for you:
 
     while (ps.next_src = get_next_buffer_somehow()) {
