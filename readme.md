@@ -153,7 +153,7 @@ When ps.koff = ps.klim, then there is no key.  Object values always have a key, 
 When ps.voff = ps.vlim, then there is no value.  
 
 Remember that src data is UTF-8 encouded, not UTF-16 encoded like javascript strings so non-asci will
-not directly translate to strings.  **qb-utf8-to-str-tiny** is a light-weight library (though not fast) for 
+not directly translate to strings.  **[qb-utf8-to-str-tiny](https://github.com/quicbit-js/qb-utf8-to-str-tiny)** is a light-weight library (though not fast) for 
 converting UTF-8 to javascript strings.
 
 ## ps.tok
