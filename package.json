@@ -1,7 +1,7 @@
 {
   "name": "qb-json-next",
-  "version": "1.0.1",
-  "description": "fast and simple incremental JSON parsing that can start and stop at any offset",
+  "version": "1.0.3",
+  "description": "fast (~300 MB/sec) and simple incremental JSON parsing that can start and stop at any byte offset",
   "homepage": "https://github.com/quicbit-js/qb-json-next",
   "url": "https://github.com/quicbit-js/qb-json-next/issues",
   "email": "support@quicbit.com",
