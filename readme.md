@@ -21,15 +21,13 @@ A fast, zero-dependency, *validating* JSON parser (~300 MB/sec running node 6 on
 **qb-json-next introduces validation and incremental parsing!**
 
 qb-json-next started out as an update to qb-json-tok (which is a bit faster but with no validation), but 
-sense as a new package.  The features and simplicity of qb-json-next make it far better choice for
+made sense as a new package when finished.  The features and simplicity of qb-json-next make it far better choice for
 most use cases.
 
 
 **Complies with the 100% test coverage and minimum dependency requirements** of 
 [qb-standard](http://github.com/quicbit-js/qb-standard) . 
 
-
-Fast and simple incremental JSON parsing with full representation of any parse state.
 
 # install
 
@@ -39,9 +37,9 @@ npm install qb-json-next
 
     var next = require('qb-json-next')
     
-    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) }  // parse-state properties are updated-in-place by next()
+    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) }  // ps properties are updated in-place by next()
     while ( next(ps) ) {
-      console.log( next.tokstr(ps) )
+      console.log( next.tokstr(ps) )                    // see 
     }
     
     output:
@@ -54,47 +52,6 @@ npm install qb-json-next
     > ]@13                      // end array at 13
     > }@15                      // end object at 15
 
-# Parsing split buffers with ps.next_src
-
-The ps.next_src property is checked before returning from next() whenever ps.src is empty or finished.  It 
-allows clients to continue parsing so long as values are cleanly separated between buffers.
-
-    var next = require('qb-json-next')
-    
-    var ps = {}
-    
-    while (ps.next_src = get_next_buffer_somehow()) {
-        while (next(ps)) {
-          console.log(next.tokstr(ps))  // ps ("parse-state") has token and offset information
-        }
-    }
-    
-A buffer can stop at any point, but it may continue parsing only after whole values or key-value pairs.  That is,
-it cannot continue after part of a key, value or key without the subsequent value:
-
-    src1                        src2                            split allowed?
-    '['                         '11, 12, 13]'                   YES 
-    '[11, 12'                   ', 13]'                         YES 
-    '[11, 12, 13'               ']'                             YES 
-    '{ '                        '}'                             YES   
-    '{ "a": true '              '}'                             YES  
-    '{ "a": true'               ', "b": false }'                YES  
-    '{ "a": true, '             '"b": false }'                  YES  
-    '{ "a": true, "b": ['       '82] }'                         YES - key "b" is in same buffer as array start
-                                
-    '[ 11, 1'                   '2, 13 ]'                       NO - split number 12
-    '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
-    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
-    
-Note that **the module [qb-json-align](https://github.com/quicbit-js/qb-json-align) supports continued parsing from any split buffer** including truncated keys and values.  
-It's simple to use - just call align(ps) after setting ps.next_src and before calling next(ps) and split values are handled for you:
-
-    while (ps.next_src = get_next_buffer_somehow()) {
-        align(ps)                                               // add this call after next_src is set to handle any split.
-        while (next(ps)) {
-          console.log(next.tokstr(ps))
-        }
-    }
 
 # next (ps)
 
@@ -144,6 +101,60 @@ src and next_src are the current buffer and next buffer to parse.
 When next() reaches the src limit,
 next_src is moved to src and parsing is set to continue with the new buffer 
 (koff, klim, voff, and vlim are set to zero).
+
+### Parsing across buffers with whole values
+
+The ps.next_src property is checked before returning from next() whenever ps.src is empty or finished.  If set,
+ps.next_src is moved to ps.src, limits are reset to zero, and parsing continues with the new buffer.  This 
+allows parsing across buffers:
+
+    var next = require('qb-json-next')
+    
+    var ps = {}
+    
+    while (ps.next_src = get_next_buffer_somehow()) {
+        while (next(ps)) {
+          console.log(next.tokstr(ps))  
+        }
+    }
+    
+Parsing stopping at any point retains exact information about the stop state, but next() can only continue parsing 
+after a whole value or key-value pair.  
+
+(You can use [qb-json-align](https://github.com/quicbit-js/qb-json-align) to handle arbitrary buffer splits)
+
+
+next() cannot continue after part of a key, part of a value or after a key 
+with no subsequent value (array and object start brackets count as a whole value).
+
+
+    src1                        src2                            split allowed?
+    '['                         '11, 12, 13]'                   YES 
+    '[11, 12'                   ', 13]'                         YES 
+    '[11, 12, 13'               ']'                             YES 
+    '{ '                        '}'                             YES   
+    '{ "a": true '              '}'                             YES  
+    '{ "a": true'               ', "b": false }'                YES  
+    '{ "a": true, '             '"b": false }'                  YES  
+    '{ "a": true, "b": ['       '82] }'                         YES - key "b" is in same buffer as array start
+                                
+    '[ 11, 1'                   '2, 13 ]'                       NO - split number 12
+    '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
+    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
+
+
+### Parsing buffers with any arbitrary split
+
+**The module [qb-json-align](https://github.com/quicbit-js/qb-json-align) supports continued parsing from any split buffer** including truncated keys and values.  
+It's simple to use - just call align(ps) after setting ps.next_src and before calling next(ps) and split values are handled for you:
+
+    while (ps.next_src = get_next_buffer_somehow()) {
+        align(ps)                                               // add this call after next_src is set to handle any split.
+        while (next(ps)) {
+          console.log(next.tokstr(ps))
+        }
+    }
+
 
 ## ps.vcount
 
@@ -256,7 +267,7 @@ are considered values when describing position.
        {  name : "Samuel", tags : [ "Sam", "Sammy" ]   }
         
 
-There are 2 possible *positions* **before**, and **after**, that define parse position relative to a key 
+There are 2 possible *positions* **before**, and **after** that define parse position relative to a key 
 or value plus a **first** indicator to indicate if it is the first item in a new context: 
 
     before-first-value                                                          stack = ''
@@ -311,9 +322,9 @@ next.pos positions are defined in the next.POS object:
 ### next.POS
 
 The POS object maps names to the ps.pos values used by next().  
-ps.pos integers allow super-fast performance, but are not user-friendly, so these POS
-give some level readability (though admittedly still very brief).  Here they are just as they
-are defined in the code:
+ps.pos integers allow super-fast performance, but are not user-friendly, so these POS names
+give some level readability (though admittedly still very brief).  Here they are as
+defined in the code:
 
     // values for ps.pos(ition).  LSB (0x7F) are reserved for token ascii value.
     var POS = {
@@ -355,7 +366,7 @@ states occurs, **ps.tok is set to zero** and ps.ecode is set to one of the follo
 
 ## How it works - Understanding the parse graph (state and stack)
 
-The parse graph is a simply mapping of parse states to other allowed states.  For next(), we employ an integer array to do this 
+The parse graph is a simple mapping of parse states to other allowed states.  For next(), we employ an integer array to do this 
 in the most efficent manner possible.  We encode position state (ps.pos) along with ascii values in the same 
 low integer to create the graph.
 
