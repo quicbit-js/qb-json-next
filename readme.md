@@ -175,7 +175,44 @@ When ps.voff = ps.vlim, then there is no value.
 
 Remember that src data is UTF-8 encouded, not UTF-16 encoded like javascript strings so non-asci will
 not directly translate to strings.  **[qb-utf8-to-str-tiny](https://github.com/quicbit-js/qb-utf8-to-str-tiny)** is a light-weight library (though not fast) for 
-converting UTF-8 to javascript strings.
+converting UTF-8 to javascript strings.  Also note that string offsets include the quotes (ascii 34)
+
+For example:    
+
+                                                                                  (ascii as strings)
+                                                                                  
+                                              koff    klim    voff    vlim        key   value   stack
+    |-----------------------------------------   0       0       0       0                         
+    |                                                                                              
+    | |---------------------------------------   0       0       1       2                 {       {         
+    | |                                                                                            
+    | |       |-------------------------------   9      10      10      10        "                {
+    | |       |                                                                                    
+    | |       | |-----------------------------   9      12      12      12        "a"              {
+    | |       | |                                                                                  
+    | |       | | |---------------------------   9      12      14      14        "a"              {
+    | |       | | |                                                                                
+    | |       | | | |-------------------------   9      12      15      16        "a"      "       {
+    | |       | | | |                                                                              
+    | |       | | | |  |----------------------   9      12      15      19        "a"   "hi"       {
+    | |       | | | |  |                                                                           
+    | |       | | | |  |                       (key/value flushed out - to callback)               
+    | |       | | | |  |                        12      12      19      19                         {
+    | |       | | | |  |                                                                           
+    | |       | | | |  |     |----------------  21      24      25      25        "b"              {
+    | |       | | | |  |     |                                                                     
+    | |       | | | |  |     | |--------------  21      24      26      27        "b"      [      {[
+    | |       | | | |  |     | |                                                                   
+    | |       | | | |  |     | |    |---------  24      24      32      32                        {[
+    | |       | | | |  |     | |    |                                                              
+    | |       | | | |  |     | |    | |-------  24      24      32      33                 ]       {
+    | |       | | | |  |     | |    | |
+    | |       | | | |  |     | |    | | |-----  24      24      35      36                 ]       
+    | |       | | | |  |     | |    | | |
+              1         2         3      
+    01234567890123456789012345678901234567
+     {       "a":  "hi", "b": [ 1, 2 ] }                           
+    
 
 ## ps.tok
 
