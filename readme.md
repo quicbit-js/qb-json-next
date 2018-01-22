@@ -8,16 +8,16 @@ Fast and simple incremental JSON parsing with full represnetation of any parse s
 
 npm install qb-json-next
 
-# parsing a single JSON buffer
+# Parsing a JSON buffer with next()
 
     var next = require('qb-json-next')
     
-    var ps = {src: new Buffer('{ "a": [1,2,3] }') }}
-    while (next(ps)) {
-      console.log(next.tokstr(ps))  // ps ("parse-state") has token and offset information
+    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) }  // parse-state properties are updated-in-place by next()
+    while ( next(ps) ) {
+      console.log( next.tokstr(ps) )
     }
     
-    Output:
+    output:
     
     > {@0                       // start of object at 0
     > k3@2:[@7                  // key (3 bytes) at 2, start of array at 7                        
@@ -27,35 +27,134 @@ npm install qb-json-next
     > ]@13                      // end array at 13
     > }@15                      // end object at 15
 
-# the parse-state (ps)
+# Parsing split buffers with ps.next_src
 
-Each call to next(ps) updates the given parse-state object, abbreviated 'ps'.  parse-state has the following 
+The ps.next_src property is checked before returning from next() whenever ps.src is empty or finished.  It 
+allows clients to continue parsing so long as values are cleanly separated between buffers.
+
+    var next = require('qb-json-next')
+    
+    var ps = {}
+    
+    while (ps.next_src = get_next_buffer_somehow()) {
+        while (next(ps)) {
+          console.log(next.tokstr(ps))  // ps ("parse-state") has token and offset information
+        }
+    }
+    
+A buffer can stop at any point, but it may continue parsing only after whole values or key-value pairs.  That is,
+it cannot continue after part of a key, value or key without the subsequent value:
+
+    src1                        src2                            split allowed?
+    '['                         '11, 12, 13]'                   YES 
+    '[11, 12'                   ', 13]'                         YES 
+    '[11, 12, 13'               ']'                             YES 
+    '{ '                        '}'                             YES   
+    '{ "a": true '              '}'                             YES  
+    '{ "a": true'               ', "b": false }'                YES  
+    '{ "a": true, '             '"b": false }'                  YES  
+    '{ "a": true, "b": ['       '82] }'                         YES - key "b" is in same buffer as array start
+                                
+    '[ 11, 1'                   '2, 13 ]'                       NO - split number 12
+    '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
+    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
+    
+Note that **the module qb-json-align supports continued parsing from any split buffer** including truncated keys and values.  
+It's simple to use - just call align(ps) after setting ps.next_src and before calling next(ps) and split values are handled for you:
+
+    while (ps.next_src = get_next_buffer_somehow()) {
+        align(ps)                                               // add this call after next_src is set to handle any split.
+        while (next(ps)) {
+          console.log(next.tokstr(ps))
+        }
+    }
+
+
+# The parse-state object (ps)
+
+Each call to next(ps) updates the parse-state object, abbreviated 'ps'.  parse-state has the following 
 properties:
 
     {
-        src:        // [byt] - the source buffer being read
+        src         // [byt] - the source buffer being read
         next_src    // [byt] - the next source buffer to continue reading (optional)
-        vcount:     // int   - value count - number of values or key-values parsed so far (completed)
-        koff:       // int   - key offset
-        klim:       // int   - key limit
-        tok:        // int   - token - integer indicating what was parsed or encountered, see chart
-        voff:       // int   - value offset
-        vlim:       // int   - value limit
-        stack:      // [byt] - ascii open brackets representing array or object containers and depth
-        pos:        // int   - relative parse position code (before value, after key...) - see qb-json-tokv
+        vcount      // int   - value count - number of complete values or key-values read so far
+        koff        // int   - key offset
+        klim        // int   - key limit
+        tok         // int   - token - integer indicating what was parsed or encountered, see chart
+        voff        // int   - value offset
+        vlim        // int   - value limit
+        stack       // [byt] - ascii open braces/brackets representing array or object containers and depth
+        pos         // int   - relative parse position code (before value, after key...) - see qb-json-tokv
+        ecode       // int   - end-code used to indicate special termination state such as truncated or illegal values      
     }
     
-src and next_src are the current buffer and next buffer to parse.  When next reaches the src limit,
+The parse-state object is designed to be as efficient as possible at the cost of readability, using the same fast codes that
+allow next() to work quickly.
+    
+Here are the properties described in detail:
+
+## ps.src and ps.next_src
+
+ps.src and ps.next_src can be any array-type object containing UTF-8 encoded JSON.  Javascript arrays and typed arrays
+(and so node Buffers as well) are acceptable src buffers.
+
+ps.src is the current active buffer being parsed.  The parsed token, ecode, four offset properties, stack, vcount, and pos properties are all 
+relative to this buffer.
+
+src and next_src are the current buffer and next buffer to parse.  
+
+When next() reaches the src limit,
 next_src is moved to src and parsing is set to continue with the new buffer 
 (koff, klim, voff, and vlim are set to zero).
 
-parse-state is designed to be as efficient as possible at the cost of some readability, using the same fast integers that
-allows next() to work quickly.  The following functions and data are included as properties of next() to
-help work with this data:
+## ps.vcount
 
-## next.tokstr(ps, detail)
+The number of completed values.  Array and object start brackets are not counted, while array and object end brackets
+are counted.  Strings are only counted after vlim passes the closing quote and numbers are only counted after
+a non-number delimiter byte is read.  Keys are not counted, only the completed value following the key is counted 
+counting every key-value pair as "1" value.
 
-Given a parse state, return an abbreviated string representation of the type of token, the length
+## offsets: ps.koff, ps.klim, ps.voff, and ps.vlim
+
+The offsets describe key and value start and end points.  ps.koff and ps.voff are inclusive offsets where the key 
+and value start (starting at zero), while ps.klim and ps.vlim are exclusive limits which are one byte after the
+last key or value byte.  
+
+When ps.koff = ps.klim, then there is no key.  Object values always have a key, while array values never do.
+
+When ps.voff = ps.vlim, then there is no value.  
+
+Remember that src data is UTF-8 encouded, not UTF-16 encoded like javascript strings so non-asci will
+not directly translate to strings.  **qb-utf8-to-str-tiny** is a light-weight library (though not fast) for 
+converting UTF-8 to javascript strings.
+
+## ps.tok
+
+The ps.tok property holds an ascii byte representing the type of value last read, or zero if parsing ended (at src limit
+or on error).  Possible values for tok are defined in the next.TOK object property:
+
+### next.TOK
+
+The TOK object maps names to the ps.tok integers returned by next().  For all but string and decimal, the
+token returned is simply the same as the first byte encountered.  't' for true, '{' for object start, etc.
+Here they are just as they are defined in the code:
+
+    var TOK = {
+      ARR: 91,        // '['
+      ARR_END: 93,    // ']'
+      DEC: 100,       // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
+      FAL: 102,       // 'f'
+      NUL: 110,       // 'n'
+      STR: 115,       // 's'  - a string value starting with "
+      TRU: 116,       // 't'
+      OBJ: 123,       // '{'
+      OBJ_END:  125,  // '}'
+    }
+
+### next.tokstr(ps, detail)
+
+Given a parse state, next.tokstr() returns an abbreviated string representation of the type of token, the length
 of key and value and the byte offset into ps.src. 
 
 Setting detail option to true will include the abbreviated position name (see POS), and a string representation of
@@ -95,12 +194,84 @@ the stack.  For example:
     }@17:A_AV
 
 
-# next.posname(pos)
+### ps.stack and ps.pos
 
-Takes a ps.pos integer as input and returns a brief string code - same name codes used for next.POS.  see next.POS
-for details.
+ps.stack and ps.pos keep track of the nested context and relative position of parsing.  
 
-# next.POS
+ps.stack uses an array of integers (object and array open-braces ascii) to track depth and context
+
+    91      // ascii for '[' - array start
+    123     // ascii for '{' - object start                                    
+    
+    stack:  [] | [123]                      | [123,91]       | [123]  | []
+               |                            |                |        |
+               {  name :  "Samuel" , tags : [ "Sam", "Sammy" ]        } ,  "another value"
+    
+
+ps.pos describes parser position relative to a JSON **key** or **value**.  Note that
+both the start and end brackets of arrays and objects
+are considered values when describing position. 
+
+      value                                          value
+       |   key    value    key  value            value |
+       |    |       |       |     | value   value  |   |
+       |    |       |       |     |   |       |    |   |
+       {  name : "Samuel", tags : [ "Sam", "Sammy" ]   }
+        
+
+There are 2 possible *positions* **before**, and **after**, that define parse position relative to a key 
+or value plus a **first** indicator to indicate if it is the first item in a new context: 
+
+    before-first-value                                                          stack = ''
+      |  
+      |  before-first-key                                                       stack = '{'
+      |  |
+      |  |    after-key
+      |  |    |
+      |  |    | before-value
+      |  |    | |
+      |  |    | | 
+      |  |    | |  
+      |  |    | |         after-value
+      |  |    | |         |
+      |  |    | |         | before-key        
+      |  |    | |         | |
+      |  |    | |         | | 
+      |  |    | |         | |  
+      |  |    | |         | |    after-key
+      |  |    | |         | |    |
+      |  |    | |         | |    | before-value
+      |  |    | |         | |    | |
+      |  |    | |         | |    | | before-first-value                         stack = '{['
+      |  |    | |         | |    | | |
+      |  |    | |         | |    | | |  
+      |  |    | |         | |    | | |    
+      |  |    | |         | |    | | |     after-value
+      |  |    | |         | |    | | |     |
+      |  |    | |         | |    | | |     |before-value
+      |  |    | |         | |    | | |     ||
+      |  |    | |         | |    | | |     ||
+      |  |    | |         | |    | | |     ||   
+      |  |    | |         | |    | | |     ||       after-value
+      |  |    | |         | |    | | |     ||       | 
+      |  |    | |         | |    | | |     ||       | after-value               stack = '{'
+      |  |    | |         | |    | | |     ||       | |           after-value   stack = ''
+      |  |    | |         | |    | | |     ||       | |           |
+      |  |    | |         | |    | | |     ||       | |           | before-value
+      |  |    | |         | |    | | |     ||       | |           | |
+      |  |    | |         | |    | | |     ||       | |           | | 
+      |  |    | |         | |    | | |     ||       | |           | |  
+      |  |    | |         | |    | | |     ||       | |           | |                after-value
+      |  |    | |         | |    | | |     ||       | |           | |                |
+       {  name :  "Samuel" , tags : [ "Sam", "Sammy" ]        }    ,  "another value"
+    
+
+Most state management in next() is the matter of a bitwise-or and one or two array lookups per token, which is why next()
+can validate so quickly.
+
+next.pos positions are defined in the next.POS object:
+
+### next.POS
 
 The POS object maps names to the ps.pos values used by next().  
 ps.pos integers allow super-fast performance, but are not user-friendly, so these POS
@@ -120,31 +291,22 @@ are defined in the code:
     }
  
 
-(The object/array context is redundant with stack information, but is included in ps.pos to allow one-step 
+(Design note - the object/array context is redundant with stack information, but is included in ps.pos to allow one-step 
 lookup and validation which is a factor in making next() validation so fast.) 
 
-# next.TOK
+### next.posname (pos)
 
-The TOK object maps names to the ps.tok integers returned by next().  For all but string and decimal, the
-token returned is simply the same as the first byte encountered.  't' for true, '{' for object start, etc.
-Here they are just as they are defined in the code:
+Given a ps.pos integer as input next.posname() returns a brief string code (A_BF, A_BV, O_BF...)- the same names used for next.POS
 
-    var TOK = {
-      ARR: 91,        // '['
-      ARR_END: 93,    // ']'
-      DEC: 100,       // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
-      FAL: 102,       // 'f'
-      NUL: 110,       // 'n'
-      STR: 115,       // 's'  - a string value starting with "
-      TRU: 116,       // 't'
-      OBJ: 123,       // '{'
-      OBJ_END:  125,  // '}'
-    }
+## ps.ecode
 
-# next.ECODE
+The ps.ecode or "end-code" describes special parsing end states.  The four possible end states are defined by
+the next.ECODE object:
+
+### next.ECODE
 
 The ECODE object maps names of special parsing "end" states to integers used by ps.ecode.   When one of these special
-states occurs, ps.tok is set to zero and ps.ecode is set to one of the following:
+states occurs, **ps.tok is set to zero** and ps.ecode is set to one of the following:
 
     var ECODE = {
       BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
@@ -153,39 +315,94 @@ states occurs, ps.tok is set to zero and ps.ecode is set to one of the following
       UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
     }
 
-# parsing multiple / split buffers with ps.next_src
 
-The ps.next_src property is checked before returning from next() whenever ps.src is empty or finished.  It 
-allows clients to continue parsing so long as values are cleanly separated between buffers.
+## How it works - Understanding the parse graph (state and stack)
 
-    var next = require('qb-json-next')
-    
-    var ps = {}
-    
-    while (ps.next_src = get_next_buffer_somehow()) {
-        while (next(ps)) {
-          console.log(next.tokstr(ps))  // ps ("parse-state") has token and offset information
-        }
-    }
-    
-A buffer can stop at any point, but it may continue parsing only after whole values or key-value pairs.  That is,
-it cannot continue after part of a key, value or key without the subsequent value:
+The parse graph is a simply mapping of parse states to other allowed states.  For next(), we employ an integer array to do this 
+in the most efficent manner possible.  We encode position state (ps.pos) along with ascii values in the same 
+low integer to create the graph.
 
-    src1                        src2                            split allowed?
-    '['                         '11, 12, 13]'                   YES 
-    '[11, 12'                   ', 13]'                         YES 
-    '[11, 12, 13'               ']'                             YES 
-    '{ '                        '}'                             YES   
-    '{ "a": true '              '}'                             YES  
-    '{ "a": true'               ', "b": false }'                YES  
-    '{ "a": true, '             '"b": false }'                  YES  
-    '{ "a": true, "b": ['       '82] }'                         YES - key "b" is in same buffer as array start
-                                
-    '[ 11, 1'                   '2, 13 ]'                       NO - split number 12
-    '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
-    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
+    var state1 = states[state0 + ascii-value]
+
+If the state isn't allowed, then state1 is zero.  If allowed, it is the new ps.pos value - the next position.
+
+    var state2 = states[state1 + ascii-value]
     
-To handle arbitrary buffer splits in a way that allows the client to use ps key and value offsets requires 
-sometimes creating a new buffer to span the values. **The module qb-json-align** allows continued parsing from
-any split point.
+This simple mechanism works for all state transitions, except when we leave context of an object or array.  
+When a '}' or ']' is encountered, the new state will have no context set (you can see this for yourself in
+the Adding Custom Rules to Parsing section, below).
+
+When closing an object or array, the 'stack' is used to supplement missing context (91 is ascii for array-close):
+
+    if (stack.length !== 0) { state1 |= (stack[stack.length - 1] === 91 ? in_arr : in_obj) }
+ 
+
+## Adding Custom Rules to Parsing
+
+Though qb-json-tokv uses bit manipulation, I have tried to make the rules as readable as possible so even if
+you aren't comfortable with bit twiddling, you may understand and modify the parse rules.  Can you see how
+to make parsing tolerant of trailing commas by looking at the states below? (the answer is at the bottom of this section).
+    
+First, the setup.  We create an integer-to-integer mapping of all the allowed states.  The full parse graph is 
+defined with 10 lines of configuration:
+
+    //   position(s) + token(s) -> new position
+    map([POS.A_BF, POS.A_BV], val, POS.A_AV)
+    map([POS.A_AV], ',', POS.A_BV)
+    
+    map([POS.A_BF, POS.A_BV, POS.O_BV], '[', POS.A_BF)
+    map([POS.A_BF, POS.A_BV, POS.O_BV], '{', POS.O_BF)
+    
+    map([POS.A_BF, POS.A_AV], ']', POS.A_AV)      // use any non-zero value here - stack is used to check new position
+    map([POS.O_BF, POS.O_AV], '}', POS.A_AV)      // use any non-zero value here - stack is used to check new position
+    
+    map([POS.O_AV], ',', POS.O_BK)
+    map([POS.O_BF, POS.O_BK], 's', POS.O_AK)      // s = string
+    map([POS.O_AK], ':', POS.O_BV)
+    map([POS.O_BV], val, POS.O_AV)
+     
+
+That's pretty dense, and the codes look cryptic, but it is easy to see the 'big picture' once
+you understand the abbreviations.
+
+    map([POS.A_BF, POS.A_BV], val, POS.A_AV)
+
+... maps positions 
+    
+        "in-array, before-first-value" and "in-array, before-value"
+            for tokens (null, true, false, decimal, string)
+                to position ("in-array, after-value")
+
+And this statement:
+
+    map([POS.O_AV], ',', POS.O_BK)
+
+... maps position
+ 
+        "in-object, after-value" 
+            for token ',' (comma) 
+                to position "in-object, before-key"
+        
+                
+If that made sense, I encourage looking at the map code - it is just as understandable as that... 
+
+To make the graph tolerate trailing commas in arrays <code>[1,2,3,]</code>, add an array-end rule where a 
+value is expected (before-value):
+
+      map([POS.A_BV], ']', POS.A_AV )
+      
+  In fact, if you look above, this looks extremely similar to the existing 'A_BF' + ']' rule that allows arrays to close without
+  any content at all:
+
+      map([POS.A_BF, POS.A_AV], ']', POS.A_AV)        
+      
+      ... and we could have just added our case to that rule instead, if we liked
+      
+      map([POS.A_BF, POS.A_AV, POS.A_BV], ']', POS.A_AV)        
+      
+To make the graph also tolerate trailing commas in an empty array <code>[,]</code>, add an array-comma rule where 
+a first value is expected (before-first-value):
+
+      map([POS.A_BF], ',',  POS.A_BV )
+
 
