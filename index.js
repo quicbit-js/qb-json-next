@@ -71,20 +71,21 @@ function pos_map () {
 
   var val = 'ntfds' // legal value starts (null, true, false, decimal, string)
 
-  // 0 = no context (comma separated values)
-  // (s0 ctxs +       s0 positions + tokens) -> s1
+  //   position(s) + token(s) -> new position
   map([POS.A_BF, POS.A_BV], val, POS.A_AV)
   map([POS.A_AV], ',', POS.A_BV)
 
   map([POS.A_BF, POS.A_BV, POS.O_BV], '[', POS.A_BF)
   map([POS.A_BF, POS.A_BV, POS.O_BV], '{', POS.O_BF)
 
+  map([POS.A_BF, POS.A_AV], ']', POS.A_AV)      // use any non-zero value here - stack is used to check new position
+  map([POS.O_BF, POS.O_AV], '}', POS.A_AV)      // use any non-zero value here - stack is used to check new position
+
   map([POS.O_AV], ',', POS.O_BK)
   map([POS.O_BF, POS.O_BK], 's', POS.O_AK)      // s = string
   map([POS.O_AK], ':', POS.O_BV)
   map([POS.O_BV], val, POS.O_AV)
 
-  // ending of object and array '}' and ']' are handled by checking the stack
   return ret
 }
 
@@ -242,13 +243,13 @@ function next (ps) {
         return ps.tok
 
       case 93:                                          // ]    ARRAY END
-        if (ps.pos !== POS.A_BF && ps.pos !== POS.A_AV) return handle_unexp(ps)
+        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps)
         ps.stack.pop()
         ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
 
       case 125:                                         // }    OBJECT END
-        if (ps.pos !== POS.O_BF && ps.pos !== POS.O_AV) return handle_unexp(ps)
+        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps)
         ps.stack.pop()
         ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
