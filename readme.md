@@ -1,8 +1,35 @@
 # qb-json-next
 
-Fast and simple incremental JSON parsing with full represnetation of any parse state.
+[![npm][npm-image]][npm-url]
+[![downloads][downloads-image]][npm-url]
+[![bitHound Dependencies][proddep-image]][proddep-link]
+[![dev dependencies][devdep-image]][devdep-link]
+[![code analysis][code-image]][code-link]
 
-(see qb-json-next-src for how to parse across buffers from any point)
+[npm-image]:       https://img.shields.io/npm/v/qb-json-next.svg
+[downloads-image]: https://img.shields.io/npm/dm/qb-json-next.svg
+[npm-url]:         https://npmjs.org/package/qb-json-next
+[proddep-image]:   https://www.bithound.io/github/quicbit-js/qb-json-next/badges/dependencies.svg
+[proddep-link]:    https://www.bithound.io/github/quicbit-js/qb-json-next/master/dependencies/npm
+[devdep-image]:    https://www.bithound.io/github/quicbit-js/qb-json-next/badges/devDependencies.svg
+[devdep-link]:     https://www.bithound.io/github/quicbit-js/qb-json-next/master/dependencies/npm
+[code-image]:      https://www.bithound.io/github/quicbit-js/qb-json-next/badges/code.svg
+[code-link]:       https://www.bithound.io/github/quicbit-js/qb-json-next
+
+A fast, zero-dependency, *validating* JSON parser (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
+
+**qb-json-next introduces validation and incremental parsing!**
+
+qb-json-next started out as an update to qb-json-tok (which is a bit faster but with no validation), but 
+sense as a new package.  The features and simplicity of qb-json-next make it far better choice for
+most use cases.
+
+
+**Complies with the 100% test coverage and minimum dependency requirements** of 
+[qb-standard](http://github.com/quicbit-js/qb-standard) . 
+
+
+Fast and simple incremental JSON parsing with full representation of any parse state.
 
 # install
 
@@ -85,7 +112,7 @@ properties:
         voff        // int   - value offset
         vlim        // int   - value limit
         stack       // [byt] - ascii open braces/brackets representing array or object containers and depth
-        pos         // int   - relative parse position code (before value, after key...) - see qb-json-tokv
+        pos         // int   - relative parse position code (before value, after key...) 
         ecode       // int   - end-code used to indicate special termination state such as truncated or illegal values      
     }
     
@@ -339,7 +366,7 @@ When closing an object or array, the 'stack' is used to supplement missing conte
 
 ## Adding Custom Rules to Parsing
 
-Though qb-json-tokv uses bit manipulation, I have tried to make the rules as readable as possible so even if
+Though qb-json-next uses bit manipulation, I have tried to make the rules as readable as possible so even if
 you aren't comfortable with bit twiddling, you may understand and modify the parse rules.  Can you see how
 to make parsing tolerant of trailing commas by looking at the states below? (the answer is at the bottom of this section).
     
