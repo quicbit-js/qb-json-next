@@ -96,10 +96,17 @@ It's simple to use - just call align(ps) after setting ps.next_src and before ca
         }
     }
 
+# next (ps)
+
+The next() function works by updating a ps or "parse-state" object.  The ps object can start out as any object with a
+'src' or 'next_src' property to parse.  Other properties of the ps object are updated with every call to next().
+
+next() returns the last token parsed, which is the ps.tok property.  ps properties are explained below:
+
 
 # The parse-state object (ps)
 
-Each call to next(ps) updates the parse-state object, abbreviated 'ps'.  parse-state has the following 
+Each call to next(ps) updates the parse-state object or 'ps'.  parse-state has the following 
 properties:
 
     {
