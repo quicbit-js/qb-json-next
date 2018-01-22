@@ -168,15 +168,15 @@ token returned is simply the same as the first byte encountered.  't' for true, 
 Here they are just as they are defined in the code:
 
     var TOK = {
-      ARR: 91,        // '['
-      ARR_END: 93,    // ']'
-      DEC: 100,       // 'd'  - a decimal value starting with: -, 0, 1, ..., 9
-      FAL: 102,       // 'f'
-      NUL: 110,       // 'n'
-      STR: 115,       // 's'  - a string value starting with "
-      TRU: 116,       // 't'
-      OBJ: 123,       // '{'
-      OBJ_END:  125,  // '}'
+      ARR: 91,        // '['    - array start   
+      ARR_END: 93,    // ']'    - array end
+      DEC: 100,       // 'd'    - a decimal value starting with: -, 0, 1, ..., 9
+      FAL: 102,       // 'f'    - false
+      NUL: 110,       // 'n'    - null
+      STR: 115,       // 's'    - a string value starting with "
+      TRU: 116,       // 't'    - true
+      OBJ: 123,       // '{'    - object start
+      OBJ_END:  125,  // '}'    - object end
     }
 
 ### next.tokstr(ps, detail)
