@@ -44,6 +44,7 @@ var TOK = {
 var ECODE = {
   BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
   TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
+  KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
   TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
   UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
 }
@@ -173,8 +174,6 @@ function next_src (ps) {
     ps.next_src = null
     return false
   }
-  ps.pos !== POS.O_AK && ps.pos !== POS.O_BV || err('next_src does not handle split key/values', ps)
-
   ps.soff += ps.src && ps.src.length || 0
   ps.src = ps.next_src
   ps.next_src = null
@@ -185,8 +184,10 @@ function next_src (ps) {
 
 function next (ps, opt) {
   if (!ps.pos) { init(ps) }
-  ps.koff = ps.klim
-  ps.voff = ps.vlim
+  if (ps.ecode !== 0) {                               // ecode is sticky (requires intentional fix)
+    return ps.tok = 0
+  }
+  ps.koff = ps.klim = ps.voff = ps.vlim
   var pos1 = ps.pos
   while (ps.vlim < ps.lim) {
     ps.voff = ps.vlim
@@ -271,16 +272,26 @@ function next (ps, opt) {
 }
 
 function end_src (ps, opt) {
-  if (ps.ecode === ECODE.BAD_VALUE || ps.ecode === ECODE.UNEXPECTED) {
-    if (opt && (typeof opt.err === 'function')) {
-      opt.err(ps)
-    } else {
-      checke(ps)
-    }
+  switch (ps.ecode) {
+    case 0:
+      if (ps.pos === POS.O_AK || ps.pos === POS.O_BV) {
+        ps.ecode = ECODE.KEY_NO_VAL
+      } else {
+        // return ps.next_src && next_src(ps) ? next(ps) : ps.tok
+        if (ps.next_src && next_src(ps)) { return next(ps) }
+      }
+      break
+    case ECODE.BAD_VALUE: case ECODE.UNEXPECTED:
+      ps.tok = 0
+      if (opt && (typeof opt.err === 'function')) {
+        opt.err(ps)
+        return ps.tok
+      } else {
+        checke(ps)  // throws error
+      }
+    // any other ecode is just sticky (prevents progress)
   }
-  if (ps.next_src && next_src(ps)) { return next(ps) }
-  if (ps.koff === ps.klim) { ps.koff = ps.klim = ps.voff }  // simplify state
-  return ps.tok = 0    // End
+  return ps.tok = 0
 }
 
 function handle_neg (ps, opt) {

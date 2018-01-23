@@ -18,7 +18,6 @@ var test = require('test-kit').tape()
 var utf8 = require('qb-utf8-ez')
 var next = require('.')
 var POS = next.POS
-var TOK = next.TOK
 
 function src_tokens (ps) {
   var toks = []
@@ -108,15 +107,15 @@ test('object - no spaces', function (t) {
       [ '{',              '{@0,!@1:O_BF:{' ],
       [ '{"',             '{@0,k1@1:!@2T:O_BF:{' ],
       [ '{"a',            '{@0,k2@1:!@3T:O_BF:{' ],
-      [ '{"a"',           '{@0,k3@1:!@4:O_AK:{' ],
-      [ '{"a":',          '{@0,k3@1:!@5:O_BV:{' ],
+      [ '{"a"',           '{@0,k3@1:!@4K:O_AK:{' ],
+      [ '{"a":',          '{@0,k3@1:!@5K:O_BV:{' ],
       [ '{"a":7',         '{@0,k3@1:!1@5D:O_BV:{' ],
       [ '{"a":71',        '{@0,k3@1:!2@5D:O_BV:{' ],
       [ '{"a":71,',       '{@0,k3@1:d2@5,!@8:O_BK:{' ],
       [ '{"a":71,"',      '{@0,k3@1:d2@5,k1@8:!@9T:O_BK:{' ],
       [ '{"a":71,"b',     '{@0,k3@1:d2@5,k2@8:!@10T:O_BK:{' ],
-      [ '{"a":71,"b"',    '{@0,k3@1:d2@5,k3@8:!@11:O_AK:{' ],
-      [ '{"a":71,"b":',   '{@0,k3@1:d2@5,k3@8:!@12:O_BV:{' ],
+      [ '{"a":71,"b"',    '{@0,k3@1:d2@5,k3@8:!@11K:O_AK:{' ],
+      [ '{"a":71,"b":',   '{@0,k3@1:d2@5,k3@8:!@12K:O_BV:{' ],
       [ '{"a":71,"b":2',  '{@0,k3@1:d2@5,k3@8:!1@12D:O_BV:{' ],
       [ '{"a":71,"b":2}', '{@0,k3@1:d2@5,k3@8:d1@12,}@13,!@14:A_AV' ],
     ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
@@ -173,16 +172,16 @@ test('object - spaces', function (t) {
       [ ' { ',            '{@1,!@3:O_BF:{' ],
       [ ' { "',           '{@1,k1@3:!@4T:O_BF:{' ],
       [ ' { "a',          '{@1,k2@3:!@5T:O_BF:{' ],
-      [ ' { "a"',         '{@1,k3@3:!@6:O_AK:{' ],
-      [ ' { "a":',        '{@1,k3@3:!@7:O_BV:{' ],
-      [ ' { "a": ',       '{@1,k3@3:!@8:O_BV:{' ],
+      [ ' { "a"',         '{@1,k3@3:!@6K:O_AK:{' ],
+      [ ' { "a":',        '{@1,k3@3:!@7K:O_BV:{' ],
+      [ ' { "a": ',       '{@1,k3@3:!@8K:O_BV:{' ],
       [ ' { "a": "',      '{@1,k3@3:!1@8T:O_BV:{' ],
       [ ' { "a": "x',     '{@1,k3@3:!2@8T:O_BV:{' ],
       [ ' { "a": "x"',    '{@1,k3@3:s3@8,!@11:O_AV:{' ],
       [ ' { "a": "x" }',  '{@1,k3@3:s3@8,}@12,!@13:A_AV' ],
-      [ ' { "a" ',        '{@1,k3@3:!@7:O_AK:{' ],
-      [ ' { "a" :',       '{@1,k3@3:!@8:O_BV:{' ],
-      [ ' { "a" : ',      '{@1,k3@3:!@9:O_BV:{' ],
+      [ ' { "a" ',        '{@1,k3@3:!@7K:O_AK:{' ],
+      [ ' { "a" :',       '{@1,k3@3:!@8K:O_BV:{' ],
+      [ ' { "a" : ',      '{@1,k3@3:!@9K:O_BV:{' ],
       [ ' { "a" : "',     '{@1,k3@3:!1@9T:O_BV:{' ],
       [ ' { "a" : "x',    '{@1,k3@3:!2@9T:O_BV:{' ],
       [ ' { "a" : "x" ',  '{@1,k3@3:s3@9,!@13:O_AV:{' ],
@@ -259,12 +258,12 @@ test('incomplete', function (t) {
     [ '[1, 2, ',     '[@0,d1@1,d1@4,!@7:A_BV:[' ],
     [ 'fal',         '!3@0T:A_BF' ],
     [ '"ab',         '!3@0T:A_BF' ],
-    [ '{"ab":',      '{@0,k4@1:!@6:O_BV:{' ],
+    [ '{"ab":',      '{@0,k4@1:!@6K:O_BV:{' ],
     [ '"\\\\\\"',    '!5@0T:A_BF' ],
     [ '[3.05E-2',    '[@0,!7@1D:A_BF:[' ],
     [ '[3.05E-2,4.', '[@0,d7@1,!2@9T:A_BV:[' ],
     [ '{"a',         '{@0,k2@1:!@3T:O_BF:{' ],
-    [ '{"a": ',      '{@0,k3@1:!@6:O_BV:{' ],
+    [ '{"a": ',      '{@0,k3@1:!@6K:O_BV:{' ],
   ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
 })
 
@@ -310,7 +309,6 @@ test('unexpected value', function (t) {
 test('error', function (t) {
   t.table_assert([
     [ 's1',        's2',      's3',               'exp' ],
-    [ '{"a":',  ' true}',     '',                 /next_src does not handle split key\/values/ ],
     [ '[{',     ' true}',     '',                 /unexpected token at 1..5/ ],
     [ '[',      'true, fax',  '',                 /bad value at 6..9/ ],
   ], function (s1, s2, s3) {
@@ -349,6 +347,43 @@ test('soff and vcount', function (t) {
       ret.push([ps.soff, ps.vcount])
     }
     return ret
+  })
+})
+
+test('sticky ecode', function (t) {
+  t.table_assert([
+    [ 'src',     'exp' ],
+    [ '',        ', !@0:A_BF, !@0:A_BF' ],
+    [ '1',       ', !1@0D:A_BF, !1@0D:A_BF' ],
+    [ '1,',      'd1@0:A_AV, !@2:A_BV, !@2:A_BV' ],
+    [ '1,2',     'd1@0:A_AV, !1@2D:A_BV, !1@2D:A_BV' ],
+    [ '["',      '[@0:A_BF:[, !1@1T:A_BF:[, !1@1T:A_BF:[' ],
+    [ '{"',      '{@0:O_BF:{, k1@1:!@2T:O_BF:{, k1@1:!@2T:O_BF:{' ],
+    [ '["a',     '[@0:A_BF:[, !2@1T:A_BF:[, !2@1T:A_BF:[' ],
+    [ '{"a',     '{@0:O_BF:{, k2@1:!@3T:O_BF:{, k2@1:!@3T:O_BF:{' ],
+    [ '{"a"',    '{@0:O_BF:{, k3@1:!@4K:O_AK:{, k3@1:!@4K:O_AK:{' ],
+    [ '{"a":',   '{@0:O_BF:{, k3@1:!@5K:O_BV:{, k3@1:!@5K:O_BV:{' ],
+    [ '{"a":"',  '{@0:O_BF:{, k3@1:!1@5T:O_BV:{, k3@1:!1@5T:O_BV:{' ],
+    [ '{"a":"b', '{@0:O_BF:{, k3@1:!2@5T:O_BV:{, k3@1:!2@5T:O_BV:{' ],
+    [ '{"a":n',  '{@0:O_BF:{, k3@1:!1@5T:O_BV:{, k3@1:!1@5T:O_BV:{' ],
+    [ '{"a":no', '{@0:O_BF:{, k3@1:!2@5B:O_BV:{, k3@1:!2@5B:O_BV:{' ],
+    [ '{t',      '{@0:O_BF:{, !1@1U:O_BF:{, !1@1U:O_BF:{' ],
+    [ '{7',      '{@0:O_BF:{, !1@1U:O_BF:{, !1@1U:O_BF:{' ],
+    [ '[tx',     '[@0:A_BF:[, !2@1B:A_BF:[, !2@1B:A_BF:[' ],
+    [ '{tx',     '{@0:O_BF:{, !1@1U:O_BF:{, !1@1U:O_BF:{' ],
+    ], function (src) {
+    var ps = {src: utf8.buffer(src)}
+    var last
+    var toks = []
+    while (next(ps, {err: function () {}})) {
+      last = next.tokstr(ps, 1)
+    }
+    toks.push(last)
+    toks.push(next.tokstr(ps, 1))
+    next(ps)
+    toks.push(next.tokstr(ps, 1))
+    toks[toks.length-1] === toks[toks.length-2] || err('not sticky: ' + toks.join(',   '))
+    return toks.join(', ')
   })
 })
 
