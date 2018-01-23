@@ -404,6 +404,7 @@ states occurs, **ps.tok is set to zero** and ps.ecode is set to one of the follo
     var ECODE = {
       BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
       TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
+      KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
       TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
       UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
     }
