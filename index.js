@@ -148,6 +148,7 @@ function skip_dec (src, off, lim) {
 }
 
 function init (ps) {
+  ps.soff = ps.soff || 0                  // prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
   ps.src = ps.src || []
   ps.lim = ps.lim == null ? ps.src.length : ps.lim
   ps.koff = ps.koff || 0                  // key offset
@@ -174,6 +175,7 @@ function next_src (ps) {
   }
   ps.pos !== POS.O_AK && ps.pos !== POS.O_BV || err('next_src does not handle split key/values', ps)
 
+  ps.soff += ps.src && ps.src.length || 0
   ps.src = ps.next_src
   ps.next_src = null
   ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = ps.ecode = 0
@@ -181,7 +183,7 @@ function next_src (ps) {
   return true
 }
 
-function next (ps) {
+function next (ps, opt) {
   if (!ps.pos) { init(ps) }
   ps.koff = ps.klim
   ps.voff = ps.vlim
@@ -199,7 +201,7 @@ function next (ps) {
       case 44:                                          // ,    COMMA
       case 58:                                          // :    COLON
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) { ps.voff = ps.vlim - 1; return handle_unexp(ps) }
+        if (pos1 === 0) { ps.voff = ps.vlim - 1; return handle_unexp(ps, opt) }
         ps.pos = pos1
         continue
 
@@ -207,14 +209,14 @@ function next (ps) {
         ps.tok = 115                                    // s for string
         ps.vlim = skip_str(ps.src, ps.vlim, ps.lim)
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps)
+        if (pos1 === 0) return handle_unexp(ps, opt)
         if (pos1 === POS.O_AK) {
           // key
           ps.koff = ps.voff
-          if (ps.vlim > 0) { ps.pos = pos1; ps.klim = ps.voff = ps.vlim; continue } else { ps.klim = ps.voff = -ps.vlim; return handle_neg(ps) }
+          if (ps.vlim > 0) { ps.pos = pos1; ps.klim = ps.voff = ps.vlim; continue } else { ps.klim = ps.voff = -ps.vlim; return handle_neg(ps, opt) }
         } else {
           // value
-          if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
+          if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
         }
 
       case 102:                                         // f    false
@@ -222,8 +224,8 @@ function next (ps) {
       case 116:                                         // t    true
         ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, TOK_BYTES[ps.tok])
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps)
-        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
+        if (pos1 === 0) return handle_unexp(ps, opt)
+        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
 
       case 48:case 49:case 50:case 51:case 52:          // 0-4    digits
       case 53:case 54:case 55:case 56:case 57:          // 5-9    digits
@@ -231,25 +233,25 @@ function next (ps) {
         ps.tok = 100                                    // d for decimal
         ps.vlim = skip_dec(ps.src, ps.vlim, ps.lim)
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps)
-        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps)
+        if (pos1 === 0) return handle_unexp(ps, opt)
+        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
 
       case 91:                                          // [    ARRAY START
       case 123:                                         // {    OBJECT START
         pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps)
+        if (pos1 === 0) return handle_unexp(ps, opt)
         ps.pos = pos1
         ps.stack.push(ps.tok)
         return ps.tok
 
       case 93:                                          // ]    ARRAY END
-        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps)
+        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps, opt)
         ps.stack.pop()
         ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
 
       case 125:                                         // }    OBJECT END
-        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps)
+        if (POS_MAP[ps.pos | ps.tok] === 0) return handle_unexp(ps, opt)
         ps.stack.pop()
         ps.pos = ps.stack[ps.stack.length - 1] === 123 ? POS.O_AV : POS.A_AV
         ps.vcount++; return ps.tok
@@ -257,7 +259,7 @@ function next (ps) {
       default:
         --ps.vlim
         ps.ecode = ECODE.BAD_VALUE
-        return end_src(ps)
+        return end_src(ps, opt)
     }
   }
 
@@ -268,13 +270,20 @@ function next (ps) {
   return end_src(ps)
 }
 
-function end_src (ps) {
+function end_src (ps, opt) {
+  if (ps.ecode === ECODE.BAD_VALUE || ps.ecode === ECODE.UNEXPECTED) {
+    if (opt && (typeof opt.err === 'function')) {
+      opt.err(ps)
+    } else {
+      checke(ps)
+    }
+  }
   if (ps.next_src && next_src(ps)) { return next(ps) }
   if (ps.koff === ps.klim) { ps.koff = ps.klim = ps.voff }  // simplify state
   return ps.tok = 0    // End
 }
 
-function handle_neg (ps) {
+function handle_neg (ps, opt) {
   ps.vlim = -ps.vlim
   if (ps.vlim >= ps.lim) {
     ps.ecode =
@@ -286,19 +295,24 @@ function handle_neg (ps) {
     ps.ecode = ECODE.BAD_VALUE
     ps.vlim++
   }
-  return end_src(ps)
+  return end_src(ps, opt)
 }
 
-function handle_unexp (ps) {
+function handle_unexp (ps, opt) {
   if (ps.vlim < 0) { ps.vlim = -ps.vlim }
   ps.ecode = ECODE.UNEXPECTED
-  return end_src(ps)
+  return end_src(ps, opt)
 }
 
 function err (msg, ps) {
   var e = new Error(msg + ': ' + tokstr(ps, true))
   e.parse_state = ps
   throw e
+}
+
+function checke (ps) {
+  ps.ecode !== ECODE.UNEXPECTED || err('unexpected token at ' + ps.voff + '..' + ps.vlim, ps)
+  ps.ecode !== ECODE.BAD_VALUE || err('bad value at ' + ps.voff + '..' + ps.vlim, ps)
 }
 
 function tokstr (ps, detail) {
@@ -322,6 +336,7 @@ function tokstr (ps, detail) {
 next.next = next
 next.tokstr = tokstr
 next.posname = posname
+next.checke = checke
 next.TOK = TOK
 next.POS = POS
 next.ECODE = ECODE

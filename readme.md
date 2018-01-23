@@ -33,13 +33,25 @@ most use cases.
 
 npm install qb-json-next
 
-# Parsing a JSON buffer with next()
+# next (ps, opt)
+
+next() is the function returned by require('qb-json-next').  It updates a 
+ps or "parse-state" object.  The ps object can be any object with a
+'src' or 'next_src' buffer.  
+
+    ps - the "parse state" object which is updated with every call to next() (see following section)
+
+    opt {
+        err - a function that handles errors.  if not specified, errors will be thrown instead.
+    }
+    
+**for example, we can parse and print all tokens in a buffer like this**:
 
     var next = require('qb-json-next')
     
-    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) }  // ps properties are updated in-place by next()
+    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) } 
     while ( next(ps) ) {
-      console.log( next.tokstr(ps) )                    // see 
+      console.log( next.tokstr(ps) )                    // see documentation for tokstr() details 
     }
     
     output:
@@ -52,24 +64,20 @@ npm install qb-json-next
     > ]@13                      // end array at 13
     > }@15                      // end object at 15
 
+next() returns the last token parsed, the ps.tok property, which is zero if a complete token
+was not parsable.  ps.tok and other properties are also explained in the documentation
+below.
 
-# next (ps)
+next() has other helpful properties such as TOK, POS, ECODE, posname() and tokstr() which are
+explained in the following section.
 
-The next() function is the function returned by require('qb-json-next').  next() works by updating a ps or "parse-state" object.  The ps object can start out as any object with a
-'src' or 'next_src' property to parse.  Other properties of the ps object are updated with every call to next().
-
-Note that the next() function also has some other properties such as TOK, POS, ECODE, posname() and tokstr() which are
-explained below.
-
-next() returns the last token parsed, which is the ps.tok property.  ps properties are also explained below:
-
-
-# The parse-state object (ps)
+## The parse-state object (ps)
 
 Each call to next(ps) updates the parse-state object or 'ps'.  parse-state has the following 
 properties:
 
     {
+        soff        // int   - the prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
         src         // [byt] - the source buffer being read
         next_src    // [byt] - the next source buffer to continue reading (optional)
         vcount      // int   - value count - number of complete values or key-values read so far
@@ -88,7 +96,7 @@ allow next() to work quickly.
     
 Here are the properties described in detail:
 
-## ps.src and ps.next_src
+### ps.src and ps.next_src
 
 ps.src and ps.next_src can be any array-type object containing UTF-8 encoded JSON.  Javascript arrays and typed arrays
 (and so node Buffers as well) are acceptable src buffers.

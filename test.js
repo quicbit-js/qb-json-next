@@ -23,7 +23,7 @@ var TOK = next.TOK
 function src_tokens (ps) {
   var toks = []
   do {
-    var t = next(ps)
+    var t = next(ps, {err: function () {}})     // errors show up in token details, so don't throw errors
     t === ps.tok || err('bad return token: ' + t)
     toks.push(next.tokstr(ps, ps.tok === 0))    // more details for end token
   } while (ps.tok)
@@ -41,7 +41,7 @@ test('posname', function (t) {
   ], next.posname )
 })
 
-test('next - with lim', function (t) {
+test('with lim', function (t) {
   t.table_assert([
     [ 'src',                                  'lim', 'exp' ],
     [ '"x", 4\n, null, 3.2e5 , true, false,', 0,     '!@0:A_BF' ],
@@ -66,7 +66,7 @@ test('next - with lim', function (t) {
   })
 })
 
-test('next - various', function (t) {
+test('various', function (t) {
   t.table_assert([
     [ 'src',                                      'exp' ],
     [ '',                                         '!@0:A_BF' ],
@@ -252,7 +252,7 @@ test('incremental object', function (t) {
   })
 })
 
-test('next - incomplete', function (t) {
+test('incomplete', function (t) {
   t.table_assert([
     [ 'src',         'exp' ],
     [ '1, 2,',       'd1@0,d1@3,!@5:A_BV' ],
@@ -268,7 +268,7 @@ test('next - incomplete', function (t) {
   ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
 })
 
-test('next - bad value', function (t) {
+test('bad value', function (t) {
   t.table_assert([
     [ 'src',        'exp' ],
     [ '{"a"q',      '{@0,k3@1:!@4B:O_AK:{' ],
@@ -283,7 +283,7 @@ test('next - bad value', function (t) {
   ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
 })
 
-test('next - unexpected value', function (t) {
+test('unexpected value', function (t) {
   t.table_assert([
     [ 'src',              'exp' ],
     [ '"a""b"',           's3@0,!3@3U:A_AV' ],
@@ -307,16 +307,23 @@ test('next - unexpected value', function (t) {
   ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
 })
 
-test('next - error', function (t) {
+test('error', function (t) {
   t.table_assert([
-    [ 'src1',        'src2',                        'exp' ],
-    [ '{"a":',       ' true}',                      /next_src does not handle split key\/values/ ],
-  ], function (src1, src2) {
-    return parse_split([src1, src2])
+    [ 's1',        's2',      's3',               'exp' ],
+    [ '{"a":',  ' true}',     '',                 /next_src does not handle split key\/values/ ],
+    [ '[{',     ' true}',     '',                 /unexpected token at 1..5/ ],
+    [ '[',      'true, fax',  '',                 /bad value at 6..9/ ],
+  ], function (s1, s2, s3) {
+    var sources = [s1, s2, s3]
+    var ps = {}
+    while (sources.length) {
+      ps.next_src = utf8.buffer(sources.shift())
+      while (next(ps)) {}
+    }
   }, {assert: 'throws'})
 })
 
-test('next - src not finished', function (t) {
+test('src not finished', function (t) {
   var s1 = utf8.buffer('[1,2,3,4,')
   var s2 = utf8.buffer('5]')
 
@@ -324,6 +331,25 @@ test('next - src not finished', function (t) {
   var exp = '[@0,d1@1,d1@3,d1@5,d1@7,d1@0,]@1,!@2:A_AV'
   t.same(src_tokens(ps), exp, t.desc('finished', [s1, s2], exp))
   t.end()
+})
+
+test('soff and vcount', function (t) {
+  t.table_assert([
+    [ 's1',           's2',               's3',            'exp' ],
+    [ '[1, ',         '2,3,',             '4]',           [ [ 0, 1 ], [ 4, 3 ], [ 8, 5 ] ] ],
+    [ '[ {"a": 7, ',  '"b": [1,2,3] },',  ' true ]',      [ [ 0, 1 ], [ 11, 6 ], [ 26, 8 ] ] ],
+  ], function (s1, s2, s3) {
+    var sources = [s1, s2, s3]
+    var ret = []
+    var ps = {}
+    while (sources.length) {
+      ps.next_src = utf8.buffer(sources.shift())
+      while (next(ps)) {}
+      next.checke(ps)
+      ret.push([ps.soff, ps.vcount])
+    }
+    return ret
+  })
 })
 
 function parse_split (sources) {
