@@ -334,17 +334,18 @@ test('src not finished', function (t) {
 test('soff and vcount', function (t) {
   t.table_assert([
     [ 's1',           's2',               's3',            'exp' ],
-    [ '[1, ',         '2,3,',             '4]',           [ [ 0, 1 ], [ 4, 3 ], [ 8, 5 ] ] ],
-    [ '[ {"a": 7, ',  '"b": [1,2,3] },',  ' true ]',      [ [ 0, 1 ], [ 11, 6 ], [ 26, 8 ] ] ],
+    [ '[1, ',         '2,3,',             '4]',           { soffs: [ 0, 4, 8 ], vcounts: [ 1, 3, 5 ] } ],
+    [ '[ {"a": 7, ',  '"b": [1,2,3] },',  ' true ]',      { soffs: [ 0, 11, 26 ], vcounts: [ 1, 6, 8 ] } ],
   ], function (s1, s2, s3) {
     var sources = [s1, s2, s3]
-    var ret = []
+    var ret = {soffs: [], vcounts: []}
     var ps = {}
     while (sources.length) {
       ps.next_src = utf8.buffer(sources.shift())
       while (next(ps)) {}
       next.checke(ps)
-      ret.push([ps.soff, ps.vcount])
+      ret.soffs.push(ps.soff)
+      ret.vcounts.push(ps.vcount)
     }
     return ret
   })
