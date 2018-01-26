@@ -79,8 +79,8 @@ function pos_map () {
   map([POS.A_BF, POS.A_BV, POS.O_BV], '[', POS.A_BF)
   map([POS.A_BF, POS.A_BV, POS.O_BV], '{', POS.O_BF)
 
-  map([POS.A_BF, POS.A_AV], ']', POS.A_AV)      // use any non-zero value here - stack is used to check new position
-  map([POS.O_BF, POS.O_AV], '}', POS.A_AV)      // use any non-zero value here - stack is used to check new position
+  map([POS.A_BF, POS.A_AV], ']', POS.A_AV)      // use any non-zero value for new position - stack is used instead
+  map([POS.O_BF, POS.O_AV], '}', POS.A_AV)      // use any non-zero value for new position - stack is used instead
 
   map([POS.O_AV], ',', POS.O_BK)
   map([POS.O_BF, POS.O_BK], 's', POS.O_AK)      // s = string
@@ -157,7 +157,7 @@ function init (ps) {
   ps.voff = ps.voff || ps.klim            // value offset
   ps.vlim = ps.vlim || ps.voff            // value limit
   ps.tok = ps.tok || 0                    // token/byte being handled
-  ps.stack = ps.stack || []               // ascii codes 91 and 123 for array / object depth
+  ps.stack = ps.stack || []               // context ascii codes 91 (array) and 123 (object)
   ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
@@ -194,7 +194,7 @@ function next (ps, opt) {
     ps.tok = ps.src[ps.vlim++]
     switch (ps.tok) {
       case 8: case 9: case 10: case 12: case 13: case 32:
-        if (WHITESPACE[ps.src[ps.vlim]] === 1 && ps.vlim < ps.lim) {             // 119 = 'w' whitespace
+        if (WHITESPACE[ps.src[ps.vlim]] === 1 && ps.vlim < ps.lim) {
           while (WHITESPACE[ps.src[++ps.vlim]] === 1 && ps.vlim < ps.lim) {}
         }
         continue
