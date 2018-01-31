@@ -106,7 +106,6 @@ function ascii_to_bytes (strings) {
   }, [])
 }
 
-var WHITESPACE = ascii_to_code('\b\f\n\t\r ', 1)
 var NON_TOKEN = ascii_to_code('\b\f\n\t\r ,:', 1)     // token values used internally (and not returned)
 var DELIM = ascii_to_code('\b\f\n\t\r ,:{}[]', 1)
 var DECIMAL_END = ascii_to_code('0123456789', 1)
@@ -196,12 +195,15 @@ function next (ps, opt) {
     ps.tok = ps.src[ps.vlim++]
     switch (ps.tok) {
       case 10:                                          // new-line
-        if (ps.src[ps.vlim] === 13) { ps.vlim++ }       // carriage-return (windows)
-        ps.lineoff = ps.vlim
+        ps.lineoff = ps.soff + ps.vlim
         ps.line++
         continue
 
-      case 8: case 9: case 12: case 13: case 32:        // white-space
+      case 13:                                          // carriage return
+        ps.lineoff = ps.soff + ps.vlim
+        continue
+
+      case 8: case 9: case 12: case 32:                 // other white-space
         continue
 
       case 44:                                          // ,    COMMA
@@ -321,7 +323,8 @@ function handle_unexp (ps, opt) {
 }
 
 function err (msg, ps) {
-  var e = new Error(msg + ': ' + tokstr(ps, true))
+  var ctx = '(line ' + ps.line + ', col ' + (ps.soff + ps.voff - ps.lineoff) + ', tokstr ' + tokstr(ps, true) + ')'
+  var e = new Error(msg + ': ' + ctx)
   e.parse_state = ps
   throw e
 }
@@ -338,7 +341,7 @@ function tokstr (ps, detail) {
   var tchar = ps.tok && String.fromCharCode(ps.tok) || '!'
   var ret = keystr + tchar + vlen + '@' + ps.voff
   if (ps.ecode) {
-    ret += String.fromCharCode(ps.ecode)
+    ret += ':' + String.fromCharCode(ps.ecode)
   }
   if (detail) {
     ret += ':' + posname(ps.pos)
