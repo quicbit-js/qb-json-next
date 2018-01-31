@@ -323,7 +323,7 @@ function handle_unexp (ps, opt) {
 }
 
 function err (msg, ps) {
-  var ctx = '(line ' + ps.line + ', col ' + (ps.soff + ps.voff - ps.lineoff) + ', tokstr ' + tokstr(ps, true) + ')'
+  var ctx = '(line ' + (ps.line + 1) + ', col ' + (ps.soff + ps.voff - ps.lineoff + 1) + ', tokstr ' + tokstr(ps, true) + ')'
   var e = new Error(msg + ': ' + ctx)
   e.parse_state = ps
   throw e
