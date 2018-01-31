@@ -99,6 +99,28 @@ test('various', function (t) {
   })
 })
 
+test('line and lineoff', function (t) {
+  t.table_assert([
+    [ 'src',                        'next_src', 'exp' ],
+    [ '12,13',                      '',         [ 0, 5 ] ],
+    [ '\n12,13',                    '',         [ 1, 5 ] ],
+    [ '\n\n12,13',                  '',         [ 2, 5 ] ],
+    [ '\n\r\n\r12,13',              '',         [ 2, 5 ] ],
+    [ '12,\n13',                    '',         [ 1, 2 ] ],
+    [ '\n12,\n13\n',                '',         [ 3, 0 ] ],
+    [ '{"a": 45, "b": true}',       '',         [ 0, 20 ] ],
+    [ '\n{"a": 45, "b": true}',     '',         [ 1, 20 ] ],
+    [ '\n{"a": 45, "b":\n true}',   '',         [ 2, 6 ] ],
+    [ '\n\n{"a": 45, "b":\n true}', '',         [ 3, 6 ] ],
+  ], function (src, next_src) {
+    var ps = {src: utf8.buffer(src)}
+    while (next(ps)) {}
+    ps.next_src = utf8.buffer(next_src)
+    while(next(ps)) {}
+    return [ ps.line, ps.soff + ps.vlim - ps.lineoff ]
+  })
+})
+
 test('object - no spaces', function (t) {
   t.table_assert(
     [

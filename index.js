@@ -152,7 +152,7 @@ function init (ps) {
   ps.soff = ps.soff || 0                  // prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
   ps.src = ps.src || []
   ps.lim = ps.lim == null ? ps.src.length : ps.lim
-  ps.koff = ps.koff || 0                  // key offset
+  ps.koff = ps.koff || ps.soff            // key offset
   ps.klim = ps.klim || ps.koff            // key limit
   ps.voff = ps.voff || ps.klim            // value offset
   ps.vlim = ps.vlim || ps.voff            // value limit
@@ -161,6 +161,8 @@ function init (ps) {
   ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
+  ps.line = ps.line || 0                  // line count (0x0A)
+  ps.lineoff = ps.lineoff || ps.soff      // offset after last line. (column = vlim - lineoff)
   if (ps.next_src) { next_src(ps) }
   return ps
 }
@@ -193,10 +195,13 @@ function next (ps, opt) {
     ps.voff = ps.vlim
     ps.tok = ps.src[ps.vlim++]
     switch (ps.tok) {
-      case 8: case 9: case 10: case 12: case 13: case 32:
-        if (WHITESPACE[ps.src[ps.vlim]] === 1 && ps.vlim < ps.lim) {
-          while (WHITESPACE[ps.src[++ps.vlim]] === 1 && ps.vlim < ps.lim) {}
-        }
+      case 10:                                          // new-line
+        if (ps.src[ps.vlim] === 13) { ps.vlim++ }       // carriage-return (windows)
+        ps.lineoff = ps.vlim
+        ps.line++
+        continue
+
+      case 8: case 9: case 12: case 13: case 32:        // white-space
         continue
 
       case 44:                                          // ,    COMMA
@@ -348,6 +353,7 @@ next.next = next
 next.tokstr = tokstr
 next.posname = posname
 next.checke = checke
+next.err = err
 next.TOK = TOK
 next.POS = POS
 next.ECODE = ECODE
