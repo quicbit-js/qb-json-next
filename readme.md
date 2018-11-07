@@ -2,19 +2,10 @@
 
 [![npm][npm-image]][npm-url]
 [![downloads][downloads-image]][npm-url]
-[![bitHound Dependencies][proddep-image]][proddep-link]
-[![dev dependencies][devdep-image]][devdep-link]
-[![code analysis][code-image]][code-link]
 
 [npm-image]:       https://img.shields.io/npm/v/qb-json-next.svg
 [downloads-image]: https://img.shields.io/npm/dm/qb-json-next.svg
 [npm-url]:         https://npmjs.org/package/qb-json-next
-[proddep-image]:   https://www.bithound.io/github/quicbit-js/qb-json-next/badges/dependencies.svg
-[proddep-link]:    https://www.bithound.io/github/quicbit-js/qb-json-next/master/dependencies/npm
-[devdep-image]:    https://www.bithound.io/github/quicbit-js/qb-json-next/badges/devDependencies.svg
-[devdep-link]:     https://www.bithound.io/github/quicbit-js/qb-json-next/master/dependencies/npm
-[code-image]:      https://www.bithound.io/github/quicbit-js/qb-json-next/badges/code.svg
-[code-link]:       https://www.bithound.io/github/quicbit-js/qb-json-next
 
 A fast, zero-dependency, *validating* JSON parser (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
 
