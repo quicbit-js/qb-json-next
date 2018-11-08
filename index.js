@@ -36,7 +36,7 @@ var TOK = {
   STR: 115,       // 's'    - a string value starting with "
   TRU: 116,       // 't'    - true
   OBJ: 123,       // '{'    - object start
-  OBJ_END:  125,  // '}'    - object end
+  OBJ_END: 125,  // '}'    - object end
 }
 
 // for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
@@ -164,6 +164,109 @@ function init (ps) {
   ps.lineoff = ps.lineoff || ps.soff      // offset after last line. (column = vlim - lineoff)
   if (ps.next_src) { next_src(ps) }
   return ps
+}
+
+function buf2str (src, off, lim) {
+  return src.slice(off, lim).toString()
+}
+
+function buf2num (src, off, lim) {
+  return Number(buf2str(src, off, lim))
+}
+
+function arr_equal (a, aoff, alim, b, boff, blim) {
+  return arr_cmp(a, aoff, alim, b, boff, blim) === 0
+}
+
+function arr_cmp (a, off_a, lim_a, b, off_b, lim_b) {
+  off_a = off_a || 0
+  off_b = off_b || 0
+  if (lim_a == null) { lim_a = a.length }
+  if (lim_b == null) { lim_b = b.length }
+
+  var len_a = lim_a - off_a
+  var len_b = lim_b - off_b
+  var lim = off_a + (len_a < len_b ? len_a : len_b)
+  var adj = off_a - off_b
+  while (off_a < lim) {
+    if (a[off_a] !== b[off_a - adj]) {
+      return a[off_a] > b[off_a - adj] ? 1 : -1
+    }
+    off_a++
+  }
+  return len_a === len_b ? 0 : len_a > len_b ? 1 : -1
+}
+
+function ParseState (src, opt) {
+  opt = opt || {}
+  if (opt.buf2str == null && src.constructor.name !== 'Buffer') {
+    throw Error('ParseState requires a Buffer src (in node) or a custom buf2str method')
+  }
+  this.src = src
+  init(this)
+  this.buf2str = opt.buf2str || buf2str
+  this.buf2num = opt.buf2num || buf2num
+}
+
+ParseState.prototype = {
+  constructor: ParseState,
+  get key () {
+    if (this.klim <= this.koff) {
+      return null
+    }
+    return this.buf2str(this.src, this.koff + 1, this.klim - 1)
+  },
+  get val () {
+    if (this.vlim <= this.voff) {
+      return null
+    }
+    switch (this.tok) {
+      case TOK.TRU:
+        return true
+      case TOK.FAL:
+        return false
+      case TOK.ARR: case TOK.ARR_END:
+      case TOK.OBJ: case TOK.OBJ_END:
+        return String.fromCharCode(this.tok)
+      case TOK.STR:
+        return buf2str(this.src, this.voff + 1, this.vlim - 1)  // strip quotes
+      case TOK.DEC:
+        return buf2num(this.src, this.voff, this.vlim)
+      default:
+        return null
+    }
+  },
+  key_equal: function (a, off, lim) {
+    return this.key_cmp(a, off, lim) === 0
+  },
+  key_cmp: function (a, off, lim) {
+    return arr_cmp(this.src, this.koff + 1, this.klim - 1, a, off || 0, lim == null ? a.length : lim)
+  },
+  val_equal: function (a, off, lim) {
+    return this.val_cmp(a, off, lim) === 0
+  },
+  val_cmp: function (a, off, lim) {
+    off = off || 0
+    if (lim == null) { lim = a.length }
+    return (this.tok === TOK.STR)
+      ? arr_cmp(this.src, this.voff + 1, this.vlim - 1, a, off, lim)  // strip quotes
+      : arr_cmp(this.src, this.voff, this.vlim, a, off, lim)
+  },
+  tokstr: function (detail) {
+    return tokstr(this, detail)
+  },
+  to_obj () {
+    return {
+      tokstr: this.tokstr(),
+      key: this.key,
+      val: this.val,
+      line: this.line,
+      col: this.vlim - this.lineoff,
+    }
+  },
+  toString: function () {
+    return JSON.stringify(this.to_obj())
+  },
 }
 
 // switch ps.src to ps.next_src if conditions are right (ps.src is null or is complete without errors)
@@ -352,6 +455,9 @@ function tokstr (ps, detail) {
   return ret
 }
 
+next.new_ps = function (src, opt) { return new ParseState(src, opt) }
+next.arr_equal = arr_equal
+next.arr_cmp = arr_cmp
 next.next = next
 next.tokstr = tokstr
 next.posname = posname
