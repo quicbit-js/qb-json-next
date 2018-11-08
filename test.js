@@ -101,34 +101,34 @@ test('various', function (t) {
 
 test('line and lineoff', function (t) {
   t.table_assert([
-    [ 'src',                        'next_src',  'exp' ],
-    [ '12,',                        '13',        [ 0, 5 ] ],
-    [ '12,13',                      '',          [ 0, 5 ] ],
-    [ '\n\n12,',                    '13',        [ 2, 5 ] ],
-    [ '\n',                         '\n12,13',   [ 2, 5 ] ],
-    [ '\n\r',                       '\n\r12,13', [ 2, 5 ] ],
-    [ '\n\n12,13',                  '',          [ 2, 5 ] ],
-    [ '\n\r\n\r12,13',              '',          [ 2, 5 ] ],
-    [ '\n\r\n',                     '\r12,13',   [ 2, 5 ] ],
-    [ '\n12,\n13\n',                '',          [ 3, 0 ] ],
-    [ ' \n\n12,13\n',                '',          [ 3, 0 ] ],
-    [ '12,\n13',                    '',          [ 1, 2 ] ],
-    [ '\n12,',                      '13',        [ 1, 5 ] ],
-    [ '\n12,13',                    '',          [ 1, 5 ] ],
-    [ '\n\r\n\r',                   '12,13',     [ 2, 5 ] ],
-    [ '\n\r\n\r12,',                '13',        [ 2, 5 ] ],
-    [ '{"a": 45, "b": true}',       '',          [ 0, 20 ] ],
-    [ '\n{"a": 45, "b": true}',     '',          [ 1, 20 ] ],
-    [ '{"a":\n 45, "b": true}',     '',          [ 1, 15 ] ],
-    [ '{"a": 45, "b":\n true}',     '',          [ 1, 6 ] ],
-    [ '\n{"a": 45, "b":\n true}',   '',          [ 2, 6 ] ],
-    [ '\n\n{"a":\n 45, "b":\n true}', '',        [ 4, 6 ] ],
+    [ 'src',                          'next_src',  'exp' ],
+    [ '12,',                          '13',        [ 1, 6 ] ],
+    [ '12,13',                        '',          [ 1, 6 ] ],
+    [ '\n\n12,',                      '13',        [ 3, 6 ] ],
+    [ '\n',                           '\n12,13',   [ 3, 6 ] ],
+    [ '\n\r',                         '\n\r12,13', [ 3, 6 ] ],
+    [ '\n\n12,13',                    '',          [ 3, 6 ] ],
+    [ '\n\r\n\r12,13',                '',          [ 3, 6 ] ],
+    [ '\n\r\n',                       '\r12,13',   [ 3, 6 ] ],
+    [ '\n12,\n13\n',                  '',          [ 4, 1 ] ],
+    [ ' \n\n12,13\n',                 '',          [ 4, 1 ] ],
+    [ '12,\n13',                      '',          [ 2, 3 ] ],
+    [ '\n12,',                        '13',        [ 2, 6 ] ],
+    [ '\n12,13',                      '',          [ 2, 6 ] ],
+    [ '\n\r\n\r',                     '12,13',     [ 3, 6 ] ],
+    [ '\n\r\n\r12,',                  '13',        [ 3, 6 ] ],
+    [ '{"a": 45, "b": true}',         '',          [ 1, 21 ] ],
+    [ '\n{"a": 45, "b": true}',       '',          [ 2, 21 ] ],
+    [ '{"a":\n 45, "b": true}',       '',          [ 2, 16 ] ],
+    [ '{"a": 45, "b":\n true}',       '',          [ 2, 7 ] ],
+    [ '\n{"a": 45, "b":\n true}',     '',          [ 3, 7 ] ],
+    [ '\n\n{"a":\n 45, "b":\n true}', '',          [ 5, 7 ] ],
   ], function (src, next_src) {
     var ps = {src: utf8.buffer(src)}
     while (next(ps)) {}
     ps.next_src = utf8.buffer(next_src)
     while(next(ps)) {}
-    return [ ps.line, ps.soff + ps.vlim - ps.lineoff ]
+    return [ ps.line, ps.soff + ps.vlim - ps.lineoff + 1 ]
   })
 })
 
@@ -451,7 +451,7 @@ test('arr_equal', function (t) {
 test('ParseState object', function (t) {
   t.table_assert([
     [ 'src',          'opt', 'prop_or_fn', 'args',                    'exp' ],
-    [ '{"num":7 ',    null,  'to_obj',    [],                        { tokstr: 'k5@1:d1@7', key: 'num', val: 7, line: 0, col: 8 } ],
+    [ '{"num":7 ',    null,  'to_obj',    [],                        { tokstr: 'k5@1:d1@7', key: 'num', val: 7, line: 1, col: 8 } ],
     [ '{"num":7 ',    null,  'key',       null,                      'num' ],
     [ '{"num":7 ',    null,  'key_cmp',   [ [110, 117, 109], 0, 1 ], 1 ],
     [ '{"num":7 ',    null,  'key_cmp',   [ [110, 117, 109], 0, 2 ], 1 ],
@@ -463,7 +463,7 @@ test('ParseState object', function (t) {
     [ '{"num":7 ',    null,  'val_cmp',   [ [55] ],                  0 ],
     [ '{"num":7 ',    null,  'val_cmp',   [ [55], 0, 1 ],            0 ],
     [ '{"num":7 ',    null,  'val_cmp',   [ [55], 1, 1 ],            1 ],
-    [ '{"a":[ ',      null,  'to_obj',    [],                        { tokstr: 'k3@1:[@5', key: 'a', val: '[', line: 0, col: 6 } ],
+    [ '{"a":[ ',      null,  'to_obj',    [],                        { tokstr: 'k3@1:[@5', key: 'a', val: '[', line: 1, col: 6 } ],
     [ '{"a":[ ',      null,  'key',       null,                      'a' ],
     [ '{"a":[ ',      null,  'val',       null,                      '[' ],
     [ '{"a":[3 ',     null,  'key',       null,                      null ],
@@ -476,8 +476,8 @@ test('ParseState object', function (t) {
     [ '{"a":["x" ',   null,  'val_equal', [ [120] ],                 true ],
     [ '{"a":["x" ',   null,  'val_cmp',   [ [121] ],                 -1 ],
     [ '{"a":["x" ',   null,  'val_equal', [ [121] ],                 false ],
-    [ '{"a":4} ',     null,  'to_obj',    [],                        { tokstr: '}@6', key: null, val: '}', line: 0, col: 7 } ],
-    [ '{"a":4} ',     null,  'toString',  [],                        '{"tokstr":"}@6","key":null,"val":"}","line":0,"col":7}' ],
+    [ '{"a":4} ',     null,  'to_obj',    [],                        { tokstr: '}@6', key: null, val: '}', line: 1, col: 7 } ],
+    [ '{"a":4} ',     null,  'toString',  [],                        '{"tokstr":"}@6","key":null,"val":"}","line":1,"col":7}' ],
     [ '{"a":4.1 ',    null,  'val',       null,                      4.1 ],
     [ '{"a":4} ',     null,  'val',       null,                      '}' ],
     [ '{"a": true ',  null,  'val',       null,                      true ],

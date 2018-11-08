@@ -160,7 +160,7 @@ function init (ps) {
   ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
-  ps.line = ps.line || 0                  // line count (0x0A)
+  ps.line = ps.line || 1                  // newline count (char 0x0A) + 1
   ps.lineoff = ps.lineoff || ps.soff      // offset after last line. (column = vlim - lineoff)
   if (ps.next_src) { next_src(ps) }
   return ps
@@ -426,7 +426,7 @@ function handle_unexp (ps, opt) {
 }
 
 function err (msg, ps) {
-  var ctx = '(line ' + (ps.line + 1) + ', col ' + (ps.soff + ps.voff - ps.lineoff + 1) + ', tokstr ' + tokstr(ps, true) + ')'
+  var ctx = '(line ' + (ps.line + 1) + ', col ' + (ps.soff + ps.voff - ps.lineoff) + ', tokstr ' + tokstr(ps, true) + ')'
   var e = new Error(msg + ': ' + ctx)
   e.parse_state = ps
   throw e
