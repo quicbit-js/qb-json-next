@@ -262,6 +262,7 @@ ParseState.prototype = {
       val: this.val,
       line: this.line,
       col: this.vlim - this.lineoff,
+      pos: POS2NAME[this.pos]
     }
   },
   toString: function () {
