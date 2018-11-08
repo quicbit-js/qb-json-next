@@ -261,7 +261,7 @@ ParseState.prototype = {
       key: this.key,
       val: this.val,
       line: this.line,
-      col: this.vlim - this.lineoff,
+      col: this.soff + this.vlim - this.lineoff,
       pos: POS2NAME[this.pos]
     }
   },
