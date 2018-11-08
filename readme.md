@@ -64,8 +64,12 @@ explained in the following section.
 
 ## The parse-state object (ps)
 
-Each call to next(ps) updates the parse-state object or 'ps'.  parse-state has the following 
-properties:
+Each call to next(ps) updates the parse-state object or 'ps'.  A parse-state object can be any object 
+you like and can be as simple as:
+
+    ps = { src: a_source_buffer }
+    
+Upon calling <code>next(ps)</code>, the parse state will be enriched with a complete collection of parse state information:
 
     {
         soff        // int   - the prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
@@ -82,7 +86,72 @@ properties:
         ecode       // int   - end-code used to indicate special termination state such as truncated or illegal values      
     }
     
-The parse-state object is designed to be as efficient as possible at the cost of readability, using the same fast codes that
+### next.new_ps (src, opt) (New in Version 1.1.0)
+
+While you don't need to use the next.new_ps() function to create a parse state holder, if using node, the object
+returned by new_ps() has some convenient functions and properties not available in a plain object.
+
+    opt(tions): {
+        buf2str: function (src, off, lim)   Allows custom conversion of utf8 arrays to javascript strings.  
+                                            Supplying this would allow use of the ParseState object in any 
+                                            browser or environment, rather than only working in node.
+                                            
+        buf2num: function (src, off, lim)   Allows custom conversion of number strings in utf8 to numbers.
+                                            One could use this to plug in big decimal handling etc. 
+    }
+
+
+**You can take a gander at the 'ParseState' test in test.js to see complete coverage and expected results of this object.**
+
+#### ps.key
+
+Returns the current string key, or null if there is no key.  See the examples/file-example.
+
+#### ps.val
+
+Returns the current value as a Number, String, or null, true, false value.  Tokens ARR, ARR_END, OBJ, OBJ_END are
+returned as the strings '[', ']', '{' and '}'.
+
+See the examples/file-example.js
+
+### ps.key_cmp (src, off, lim)
+
+Compare the given segment of buffer or array to the current key and return 1, -1 or 0 (for equal).  
+ps.key_cmp() can be significantly more efficient than the ps.key property since it creates no objects.  
+It can be ideal for scanning large files for particular keys.
+
+### ps.val_cmp (src, off, lim)
+
+Same as key_cmp, but compares the buffer segment with the value exactly as it is encoded in JSON.
+
+See examples/file-example.js
+
+### ps.key_equal (src, off, lim)
+
+Equivalent to key_cmp (src, off, lim) === 0
+
+### ps.val_equal (src, off, lim)
+
+Equivalent to val_cmp (src, off, lim) === 0
+
+### ps.tokstr ()
+
+Equivalent to next.tokstr(ps)
+
+### ps.to_obj ()
+
+Returns a simple object which summarizes the parse state in an easier-to-read form.
+
+    at this parse point in a JSON document
+          |
+    {"a":4}
+    
+    ps.to_obj() returns:
+    
+    { tokstr: '}@6', key: null, val: '}', line: 0, col: 7 }
+
+
+The parse-state object is designed to be as efficient as possible at the cost of readability, using the same integer codes that
 allow next() to work quickly.
     
 Here are the properties described in detail:

@@ -450,7 +450,7 @@ test('arr_equal', function (t) {
 
 test('ParseState object', function (t) {
   t.table_assert([
-    [ 'src',          'opt', 'prop',      'args',                    'exp' ],
+    [ 'src',          'opt', 'prop_or_fn', 'args',                    'exp' ],
     [ '{"num":7 ',    null,  'to_obj',    [],                        { tokstr: 'k5@1:d1@7', key: 'num', val: 7, line: 0, col: 8 } ],
     [ '{"num":7 ',    null,  'key',       null,                      'num' ],
     [ '{"num":7 ',    null,  'key_cmp',   [ [110, 117, 109], 0, 1 ], 1 ],
@@ -477,7 +477,7 @@ test('ParseState object', function (t) {
     [ '{"a":["x" ',   null,  'val_cmp',   [ [121] ],                 -1 ],
     [ '{"a":["x" ',   null,  'val_equal', [ [121] ],                 false ],
     [ '{"a":4} ',     null,  'to_obj',    [],                        { tokstr: '}@6', key: null, val: '}', line: 0, col: 7 } ],
-    [ '{"a":4} ',  null,  'toString',  [],                           '{"tokstr":"}@6","key":null,"val":"}","line":0,"col":7}' ],
+    [ '{"a":4} ',     null,  'toString',  [],                        '{"tokstr":"}@6","key":null,"val":"}","line":0,"col":7}' ],
     [ '{"a":4.1 ',    null,  'val',       null,                      4.1 ],
     [ '{"a":4} ',     null,  'val',       null,                      '}' ],
     [ '{"a": true ',  null,  'val',       null,                      true ],
@@ -486,14 +486,14 @@ test('ParseState object', function (t) {
     '# pending/incomplete decimal',
     [ '2',            null,  'val',       null,                      null ],
     [ '{"a":4}  ',    null,  'val',       null,                      null ],
-  ], function (src, opt, prop, args) {
+  ], function (src, opt, prop_or_fn, args) {
     var ps = next.new_ps(Buffer.from(src), opt)
     while (next(ps, {err: function () {}}) && ps.vlim < src.length - 1) {}
     var ret
     if (args) {
-      ret = ps[prop].apply(ps, args)
+      ret = ps[prop_or_fn].apply(ps, args)
     } else {
-      ret = ps[prop]
+      ret = ps[prop_or_fn]
     }
     return ret
   })

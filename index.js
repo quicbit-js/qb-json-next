@@ -229,9 +229,9 @@ ParseState.prototype = {
       case TOK.OBJ: case TOK.OBJ_END:
         return String.fromCharCode(this.tok)
       case TOK.STR:
-        return buf2str(this.src, this.voff + 1, this.vlim - 1)  // strip quotes
+        return this.buf2str(this.src, this.voff + 1, this.vlim - 1)  // strip quotes
       case TOK.DEC:
-        return buf2num(this.src, this.voff, this.vlim)
+        return this.buf2num(this.src, this.voff, this.vlim)
       default:
         return null
     }
