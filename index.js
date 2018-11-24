@@ -28,15 +28,18 @@ var POS = {
 
 // values for ps.tok(en).  All but string and decimal are represented by the first ascii byte encountered
 var TOK = {
-  ARR: 91,        // '['    - array start
-  ARR_END: 93,    // ']'    - array end
-  DEC: 100,       // 'd'    - a decimal value starting with: -, 0, 1, ..., 9
-  FAL: 102,       // 'f'    - false
-  NUL: 110,       // 'n'    - null
-  STR: 115,       // 's'    - a string value starting with "
-  TRU: 116,       // 't'    - true
-  OBJ: 123,       // '{'    - object start
-  OBJ_END: 125,  // '}'    - object end
+  ARR: 91,        // [    array start
+  ARR_END: 93,    // ]    array end
+  DEC: 100,       // d    a decimal value starting with: -, 0, 1, ..., 9
+  FAL: 102,       // f    false
+  // INT: 105        // i    integer, reserved token
+  NUL: 110,       // n    null
+  STR: 115,       // s    a string value starting with "
+  TRU: 116,       // t    true
+  // UNT: 117,       // u    unsigned integer, reserved token
+  // BYT: 120        // x   byte, reserved token
+  OBJ: 123,       // {    object start
+  OBJ_END: 125,   // }    object end
 }
 
 // for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
