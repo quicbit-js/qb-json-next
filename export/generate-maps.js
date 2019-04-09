@@ -17,7 +17,7 @@
 // run this script to generate pos_pairs and CMAP variables to stdout (can be copied and
 // pasted into index.js).
 
-var next = require('.')
+var next = require('..')
 
 var POS = next.POS
 var AFLAG = next._AFLAG
