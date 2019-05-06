@@ -294,7 +294,7 @@ function next (ps, opt) {
   if (CMAP[ps.tok] & NON_TOKEN) {
     ps.voff = ps.vlim
   }
-  return end_src(ps)
+  return end_src(ps, opt)
 }
 
 function end_src (ps, opt) {
