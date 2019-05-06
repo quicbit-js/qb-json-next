@@ -92,13 +92,15 @@ var ECODE = {
   UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
 }
 
-function as_buffer (s) {
-  return Uint8Array.from(s.split('').map(function (c) { return c.charCodeAt(0) }))
+// convert map of strings to array of arrays (of bytes)
+function ascii_to_bytes (strings) {
+  return Object.keys(strings).reduce(function (a, c) {
+    a[c.charCodeAt(0)] = strings[c].split('').map(function (c) { return c.charCodeAt(0) })
+    return a
+  }, [])
 }
 
-var FALSE_BYTES = as_buffer('alse')
-var TRUE_BYTES = as_buffer('rue')
-var NULL_BYTES = as_buffer('ull')
+var TOK_BYTES = ascii_to_bytes({ f: 'alse', t: 'rue', n: 'ull' })
 
 var POS2NAME = Object.keys(POS).reduce(function (a, n) { a[POS[n]] = n; return a }, [])
 
@@ -239,17 +241,9 @@ function next (ps, opt) {
         }
 
       case 102:                                         // f    false
-        ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, FALSE_BYTES)
-        pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps, opt)
-        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
       case 110:                                         // n    null
-        ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, NULL_BYTES)
-        pos1 = POS_MAP[ps.pos | ps.tok]
-        if (pos1 === 0) return handle_unexp(ps, opt)
-        if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
       case 116:                                         // t    true
-        ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, TRUE_BYTES)
+        ps.vlim = skip_bytes(ps.src, ps.vlim, ps.lim, TOK_BYTES[ps.tok])
         pos1 = POS_MAP[ps.pos | ps.tok]
         if (pos1 === 0) return handle_unexp(ps, opt)
         if (ps.vlim > 0) { ps.pos = pos1; ps.vcount++; return ps.tok } else return handle_neg(ps, opt)
@@ -507,5 +501,6 @@ next._AFLAG = {
   DECIMAL_ASCII: DECIMAL_ASCII,
   NO_LEN_TOKENS: NO_LEN_TOKENS,
 }
+next._TOK_BYTES = TOK_BYTES,
 
 module.exports = next
