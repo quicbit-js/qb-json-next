@@ -9,10 +9,11 @@
   "devDependencies": {
     "qb-utf8-ez": "^3.1.1",
     "tape": "^4.9.1",
-    "test-kit": "^2.8.7"
+    "test-kit": "file:../test-kit"
   },
   "scripts": {
     "test": "tape test.js",
+    "perf": "node export/perf.js",
     "cov": "tap --coverage-report=html test.js"
   },
   "keywords": [
