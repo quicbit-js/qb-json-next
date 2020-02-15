@@ -1,6 +1,6 @@
 // Software License Agreement (ISC License)
 //
-// Copyright (c) 2019, Matthew Voss
+// Copyright (c) 2020, Matthew Voss
 //
 // Permission to use, copy, modify, and/or distribute this software for
 // any purpose with or without fee is hereby granted, provided that the
@@ -13,9 +13,6 @@
 // WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-// run this script to generate pos_pairs and CMAP variables to stdout (can be copied and
-// pasted into index.js).
 
 var fs = require('fs')
 var next = require('..')
@@ -41,3 +38,17 @@ for (var i=0; i<iter; i++) {
 
 console.log(iter * buf.length / ((total_ms/1000) * 1024 * 1024) + ' MB/second')
 
+/*
+Test result on 2014 Macbook Pro: 2020-02-15:
+
+/Users/dad/.nvm/versions/node/v8.10.0/bin/node /Users/dad/ghub/qb-json-next/export/perf.js
+read /Users/dad/dev/json-samples/cache_150mb.json
+parsed 144.33352184295654 MB in 0.549 seconds
+parsed 144.33352184295654 MB in 0.549 seconds
+parsed 144.33352184295654 MB in 0.565 seconds
+parsed 144.33352184295654 MB in 0.545 seconds
+parsed 144.33352184295654 MB in 0.534 seconds
+263.19022947293314 MB/second
+
+
+ */
