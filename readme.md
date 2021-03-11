@@ -501,7 +501,7 @@ First, the setup.  We create an integer-to-integer mapping of all the allowed st
 defined with 10 lines of configuration:
 
     //   position(s) + token(s) -> new position
-    map([POS.A_BF, POS.A_BV], val, POS.A_AV)
+    map([POS.A_BF, POS.A_BV], 'ntfds', POS.A_AV)
     map([POS.A_AV], ',', POS.A_BV)
     
     map([POS.A_BF, POS.A_BV, POS.O_BV], '[', POS.A_BF)
@@ -513,13 +513,13 @@ defined with 10 lines of configuration:
     map([POS.O_AV], ',', POS.O_BK)
     map([POS.O_BF, POS.O_BK], 's', POS.O_AK)      // s = string
     map([POS.O_AK], ':', POS.O_BV)
-    map([POS.O_BV], val, POS.O_AV)
+    map([POS.O_BV], 'ntfds', POS.O_AV)
      
 
 That's pretty dense, and the codes look cryptic, but it is easy to see the 'big picture' once
 you understand the abbreviations.
 
-    map([POS.A_BF, POS.A_BV], val, POS.A_AV)
+    map([POS.A_BF, POS.A_BV], 'ntfds', POS.A_AV)
 
 ... maps positions 
     

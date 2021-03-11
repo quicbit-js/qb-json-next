@@ -61,7 +61,7 @@ var NO_LEN_TOKENS = 16      // 'tfn[]{}()',
 // 7  |  p    q    r    s    t    u    v    w    x    y    z    {    |    }    ~        |  // 7
 //    -----------------------------------------------------------------------------------
 
-// CMAP was lovingly crafted by util.js
+// CMAP was lovingly crafted by https://github.com/quicbit-js/qb-json-next/blob/master/export/generate-maps.js
 var CMAP = [
 //0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
   0,    0,    0,    0,    0,    0,    0,    0,    0x03, 0x03, 0x03, 0,    0x03, 0x03, 0,    0,    // 0
