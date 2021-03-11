@@ -497,10 +497,12 @@ Though qb-json-next uses bit manipulation, I have tried to make the rules as rea
 you aren't comfortable with bit twiddling, you may understand and modify the parse rules.  Can you see how
 to make parsing tolerant of trailing commas by looking at the states below? (the answer is at the bottom of this section).
     
-First, the setup.  We create an integer-to-integer mapping of all the allowed states.  The full parse graph is 
+First, the setup.  We create an integer-to-integer mapping of all the allowed 
+states (see [generate-maps.js](https://github.com/quicbit-js/qb-json-next/blob/master/export/generate-maps.js) for 
+this script that generates the ascii state array).  The full parse graph is 
 defined with 10 lines of configuration:
 
-    //   position(s) + token(s) -> new position
+    //   position(s) + token(s) -> new position     (state + token -> new state)
     map([POS.A_BF, POS.A_BV], 'ntfds', POS.A_AV)
     map([POS.A_AV], ',', POS.A_BV)
     
