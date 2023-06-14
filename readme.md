@@ -28,7 +28,7 @@ npm install qb-json-next
 
 next() is the function returned by require('qb-json-next').  It updates a 
 ps or "parse-state" object.  The ps object can be any object with a
-'src' or 'next_src' buffer.  
+'next_src' buffer.  
 
     ps - the "parse state" object which is updated with every call to next() (see following section)
 
@@ -40,7 +40,7 @@ ps or "parse-state" object.  The ps object can be any object with a
 
     var next = require('qb-json-next')
     
-    var ps = { src: new Buffer( '{ "a": [1,2,3] }' ) } 
+    var ps = { next_src: new Buffer( '{ "a": [1,2,3] }' ) } 
     while ( next(ps) ) {
       console.log( next.tokstr(ps) )                    // see documentation for tokstr() details 
     }
@@ -67,14 +67,19 @@ explained in the following section.
 Each call to next(ps) updates the parse-state object or 'ps'.  A parse-state object can be any object 
 you like and can be as simple as:
 
-    ps = { src: a_source_buffer }
+    ps = { next_src: a_source_buffer }
     
 Upon calling <code>next(ps)</code>, the parse state will be enriched with a complete collection of parse state information:
 
     {
+        // user-populated:
+        next_src    // [byt] - users must set this to the src buffer/chunk of JSON to process before calling next(). 
+                               Calling next() will move this buffer to the 'src' field for processing, at which point user
+                               may set next_src to the next chunk to be processed.
+
+        // qb-next managed fields:
+        src         // [byt] - set to the current buffer processed
         soff        // int   - the prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
-        src         // [byt] - the source buffer being read
-        next_src    // [byt] - the next source buffer to continue reading (optional)
         vcount      // int   - value count - number of complete values or key-values read so far
         koff        // int   - key offset
         klim        // int   - key limit
@@ -85,95 +90,12 @@ Upon calling <code>next(ps)</code>, the parse state will be enriched with a comp
         pos         // int   - relative parse position code (before value, after key...) 
         ecode       // int   - end-code used to indicate special termination state such as truncated or illegal values      
     }
-    
-### next.new_ps (src, opt) (New in Version 1.1.0)
 
-While you don't need to use the next.new_ps() function to create a parse state holder, if using node, the object
-returned by new_ps() has some convenient functions and properties not available in a plain object.
-
-    opt(tions): {
-        buf2str: function (src, off, lim)   Allows custom conversion of utf8 arrays to javascript strings.  
-                                            Supplying this would allow use of the ParseState object in any 
-                                            browser or environment, rather than only working in node.
-                                            
-        buf2num: function (src, off, lim)   Allows custom conversion of number strings in utf8 to numbers.
-                                            One could use this to plug in big decimal handling etc. 
-    }
-
-
-**You can take a gander at the 'ParseState' test in test.js to see complete coverage and expected results of this object.**
-
-#### ps.key
-
-Returns the current string key, or null if there is no key.  See the examples/file-example.
-
-#### ps.val
-
-Returns the current value as a Number, String, or null, true, false value.  Tokens ARR, ARR_END, OBJ, OBJ_END are
-returned as the strings '[', ']', '{' and '}'.
-
-See the examples/file-example.js
-
-### ps.key_cmp (src, off, lim)
-
-Compare the given segment of buffer or array to the current key and return 1, -1 or 0 (for equal).  
-ps.key_cmp() can be significantly more efficient than the ps.key property since it creates no objects.  
-It can be ideal for scanning large files for particular keys.
-
-### ps.val_cmp (src, off, lim)
-
-Same as key_cmp, but compares the buffer segment with the value exactly as it is encoded in JSON.
-
-See examples/file-example.js
-
-### ps.key_equal (src, off, lim)
-
-Equivalent to key_cmp (src, off, lim) === 0
-
-### ps.val_equal (src, off, lim)
-
-Equivalent to val_cmp (src, off, lim) === 0
-
-### ps.tokstr ()
-
-Equivalent to next.tokstr(ps)
-
-### ps.to_obj ()
-
-Returns a simple object which summarizes the parse state in an easier-to-read form.
-
-    at this parse point in a JSON document
-          |
-    {"a":4}
-    
-    ps.to_obj() returns:
-    
-    { tokstr: '}@6', key: null, val: '}', line: 0, col: 7 }
-
-
-The parse-state object is designed to be as efficient as possible at the cost of readability, using the same integer codes that
-allow next() to work quickly.
-    
-Here are the properties described in detail:
-
-### ps.src and ps.next_src
-
-ps.src and ps.next_src can be any array-type object containing UTF-8 encoded JSON.  Javascript arrays and typed arrays
-(and so node Buffers as well) are acceptable src buffers.
-
-ps.src is the current active buffer being parsed.  The parsed token, ecode, four offset properties, stack, vcount, and pos properties are all 
-relative to this buffer.
-
-src and next_src are the current buffer and next buffer to parse.  
-
-When next() reaches the src limit,
-next_src is moved to src and parsing is set to continue with the new buffer 
-(koff, klim, voff, and vlim are set to zero).
 
 ### Parsing across buffers with whole values
 
 The ps.next_src property is checked before returning from next() whenever ps.src is empty or finished.  If set,
-ps.next_src is moved to ps.src, limits are reset to zero, and parsing continues with the new buffer.  This 
+ps.next_src is moved to ps.src, limits are reset, and parsing continues with the new buffer.  This 
 allows parsing across buffers:
 
     var next = require('qb-json-next')

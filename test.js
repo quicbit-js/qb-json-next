@@ -354,16 +354,6 @@ test('next() errors', function (t) {
   }, {assert: 'throws'})
 })
 
-test('other errors', function (t) {
-  t.table_assert([
-    [ 'fn',        'args',            'exp' ],
-    [ 'new_ps',    [[3,4,5]],         /ParseState requires a Buffer src/ ],
-  ], function (fn, args) {
-    next[fn].apply(null, args)
-  }, {assert: 'throws'})
-})
-
-
 test('src not finished', function (t) {
   var s1 = utf8.buffer('[1,2,3,4,')
   var s2 = utf8.buffer('5]')
@@ -428,74 +418,6 @@ test('sticky ecode', function (t) {
     toks.push(next.tokstr(ps, 1))
     toks[toks.length-1] === toks[toks.length-2] || err('not sticky: ' + toks.join(',   '))
     return toks.join(', ')
-  })
-})
-
-test('arr_equal', function (t) {
-  t.table_assert([
-    [ 'a',         'aoff', 'alim', 'b',            'boff', 'blim', 'exp' ],
-    [ [],          null,   null,   [],             null,   null,   [ true, true ] ],
-    [ [],          0,      0,      [],             0,      0,      [ true, true ] ],
-    [ [ 3, 2, 1 ], 0,      0,      [],             0,      0,      [ true, true ] ],
-    [ [ 3, 2, 1 ], 0,      1,      [],             0,      0,      [ false, false ] ],
-    [ [ 3, 2, 1 ], 0,      3,      [ 4, 3, 2, 1 ], null,   null,   [ false, false ] ],
-    [ [ 3, 2, 1 ], 0,      3,      [ 4, 3, 2, 1 ], 1,      null,   [ true, true ] ],
-  ], function (a, aoff, alim, b, boff, blim) {
-    return [
-      next.arr_equal(a, aoff, alim, b, boff, blim),
-      next.arr_equal(b, boff, blim, a, aoff, alim)
-    ]
-  })
-})
-
-test('ParseState object', function (t) {
-  t.table_assert([
-    [ 'src',          'opt', 'prop_or_fn', 'args',                    'exp' ],
-    [ '{"num":7 ',    null,  'to_obj',     [],                        { tokstr: 'k5@1:d1@7', key: 'num', val: 7, line: 1, col: 8, pos: 'O_AV' } ],
-    [ '{"num":7 ',    null,  'key',        null,                      'num' ],
-    [ '{"num":7 ',    null,  'key_cmp',    [ [110, 117, 109], 0, 1 ], 1 ],
-    [ '{"num":7 ',    null,  'key_cmp',    [ [110, 117, 109], 0, 2 ], 1 ],
-    [ '{"num":7 ',    null,  'key_cmp',    [ [110, 117, 109], 0, 3 ], 0 ],
-    [ '{"num":7 ',    null,  'key_cmp',    [ [110, 117, 109] ],       0 ],
-    [ '{"num":7 ',    null,  'key_equal',  [ [110, 117, 109] ],       true ],
-    [ '{"num":7 ',    null,  'key_equal',  [ [110, 117, 109, 109] ],  false ],
-    [ '{"num":7 ',    null,  'val',        null,                      7 ],
-    [ '{"num":7 ',    null,  'val_cmp',    [ [55] ],                  0 ],
-    [ '{"num":7 ',    null,  'val_cmp',    [ [55], 0, 1 ],            0 ],
-    [ '{"num":7 ',    null,  'val_cmp',    [ [55], 1, 1 ],            1 ],
-    [ '{"a":[ ',      null,  'to_obj',     [],                        { tokstr: 'k3@1:[@5', key: 'a', val: '[', line: 1, col: 6, pos: 'A_BF' } ],
-    [ '{"a":[ ',      null,  'key',        null,                      'a' ],
-    [ '{"a":[ ',      null,  'val',        null,                      '[' ],
-    [ '{"a":[3 ',     null,  'key',        null,                      null ],
-    [ '{"a":[3 ',     null,  'val',        null,                      3 ],
-    [ '{"a":[3] ',    null,  'key',        null,                      null ],
-    [ '{"a":[3] ',    null,  'val',        null,                      ']' ],
-    [ '{"a":["x" ',   null,  'val',        null,                      'x' ],
-    [ '{"a":["x" ',   null,  'val_cmp',    [ [119] ],                 1 ],
-    [ '{"a":["x" ',   null,  'val_cmp',    [ [120] ],                 0 ],
-    [ '{"a":["x" ',   null,  'val_equal',  [ [120] ],                 true ],
-    [ '{"a":["x" ',   null,  'val_cmp',    [ [121] ],                 -1 ],
-    [ '{"a":["x" ',   null,  'val_equal',  [ [121] ],                 false ],
-    [ '{"a":4} ',     null,  'to_obj',     [],                        { tokstr: '}@6', key: null, val: '}', line: 1, col: 7, pos: 'A_AV' } ],
-    [ '{"a":4} ',     null,  'toString',   [],                        '{"tokstr":"}@6","key":null,"val":"}","line":1,"col":7,"pos":"A_AV"}' ],
-    [ '{"a":4.1 ',    null,  'val',        null,                      4.1 ],
-    [ '{"a":4} ',     null,  'val',        null,                      '}' ],
-    [ '{"a": true ',  null,  'val',        null,                      true ],
-    [ '{"a": false ', null,  'val',        null,                      false ],
-    [ '{"a": null ',  null,  'val',        null,                      null ],
-    '# pending/incomplete decimal',
-    [ '2',            null,  'val',        null,                      null ],
-    [ '{"a":4}  ',    null,  'val',        null,                      null ],
-  ], function (src, opt, prop_or_fn, args) {
-    var ps = next.new_ps(Buffer.from(src), opt)
-    while (next(ps, {err: function () {}}) && ps.vlim < src.length - 1) {}
-    var ret
-    if (args) {
-      ret = ps[prop_or_fn].apply(ps, args)
-    } else {
-      ret = ps[prop_or_fn]
-    }
-    return ret
   })
 })
 
