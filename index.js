@@ -175,7 +175,7 @@ function init (ps) {
   ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
   ps.vcount = ps.vcount || 0              // number of complete values parsed
   ps.line = ps.line || 1                  // newline count (char 0x0A) + 1
-  ps.lineoff = ps.lineoff || ps.soff      // offset after last line. (column = vlim - lineoff)
+  ps.lineoff = ps.lineoff || ps.soff      // total byte offset to beginning of current line. col = soff + vlim - lineoff
   if (ps.next_src) { next_src(ps) }
 }
 
