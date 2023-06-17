@@ -14,28 +14,28 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-var fs = require('fs')
-var next = require('..')
+const fs = require('fs')
 
 function parse (buf) {
-  var t0 = new Date()
-  var len = buf.length
-  for (var i=0; i<len; i++) {
+  const t0 = new Date()
+  const len = buf.length
+  for (let i=0; i<len; i++) {
     if (buf[i] == 0)
       throw Error('oops')
   }
   return new Date() - t0;
 }
 
-var fname = '/Users/dad/dev/json-samples/cache_150mb.json'
-var buf = fs.readFileSync(fname)
+const fname = '/Users/dad/dev/json-samples/cache_150mb.json'
+const buf = fs.readFileSync(fname)
+console.log('theoretical maximum - no processing')
 console.log('read', fname)
 
-var total_ms = 0
-var size_mb = buf.length/(1024*1024)
-var iter = 5
-for (var i=0; i<iter; i++) {
-  var ms = parse(buf)
+const size_mb = buf.length/(1024*1024)
+const iter = 5
+let total_ms = 0
+for (let i=0; i<iter; i++) {
+  let ms = parse(buf)
   total_ms += ms
   console.log('parsed ' + size_mb + ' MB in', ms/1000, 'seconds')
 }
@@ -43,15 +43,15 @@ for (var i=0; i<iter; i++) {
 console.log(iter * size_mb / (total_ms/1000) + ' MB/second')
 
 /*
-Mid-2014 Macbook Pro:
+Test result on 2014 Macbook Pro: 2023-06-16:
 
-/Users/dad/.nvm/versions/node/v8.10.0/bin/node /Users/dad/ghub/qb-json-next/export/perf_max.js
+dads-MacBook-Pro:export dad$ node perf_max.js
+theoretical maximum - no processing
 read /Users/dad/dev/json-samples/cache_150mb.json
-parsed 144.33352184295654 MB in 0.328 seconds
-parsed 144.33352184295654 MB in 0.28 seconds
-parsed 144.33352184295654 MB in 0.279 seconds
-parsed 144.33352184295654 MB in 0.296 seconds
-parsed 144.33352184295654 MB in 0.28 seconds
-493.27929543047344 MB/second
-
+parsed 144.33352184295654 MB in 0.285 seconds
+parsed 144.33352184295654 MB in 0.292 seconds
+parsed 144.33352184295654 MB in 0.334 seconds
+parsed 144.33352184295654 MB in 0.352 seconds
+parsed 144.33352184295654 MB in 0.334 seconds
+451.8895486629823 MB/second
  */

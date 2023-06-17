@@ -17,29 +17,29 @@
 // run this script to generate pos_pairs and CMAP variables to stdout (can be copied and
 // pasted into index.js).
 
-var next = require('..')
+const next = require('..')
 
-var POS = next.POS
-var AFLAG = next._AFLAG
+const POS = next.POS
+const AFLAG = next._AFLAG
 
 // create an int-int map from (pos + tok) -- to --> (new pos)
 function define_pos_map () {
-  var ret = []
-  var max = 0x400 + 0x7F            // max pos + max ascii
-  for (var i = 0; i <= max; i++) {
+  const ret = []
+  const max = 0x400 + 0x7F            // max pos + max ascii
+  for (let i = 0; i <= max; i++) {
     ret[i] = 0
   }
 
   // map ( [ctx], [pos0], [ascii] ) => pos1
-  var map = function (s0_arr, chars, s1) {
+  const map = function (s0_arr, chars, s1) {
     s0_arr.forEach(function (s0) {
-      for (var i = 0; i < chars.length; i++) {
+      for (let i = 0; i < chars.length; i++) {
         ret[s0 | chars.charCodeAt(i)] = s1
       }
     })
   }
 
-  var val = 'ntfds' // legal value starts (null, true, false, decimal, string)
+  const val = 'ntfds' // legal value starts (null, true, false, decimal, string)
 
   //   position(s) + token(s) -> new position
   map([POS.A_BF, POS.A_BV], val, POS.A_AV)
@@ -60,26 +60,26 @@ function define_pos_map () {
 }
 
 function print_pos_map (items_per_line) {
-  var pos_map = define_pos_map()
-  var flat = []
-  for (var i=0; i<pos_map.length; i++) {
+  const pos_map = define_pos_map()
+  const flat = []
+  for (let i=0; i<pos_map.length; i++) {
     if (pos_map[i] !== 0) {
       flat.push(i)
       flat.push(pos_map[i])
     }
   }
   // segment into lines of length 20
-  var lines = []
+  const lines = []
   while (flat.length) {
-    var rem = Math.min(flat.length, items_per_line)
-    var line = []
+    let rem = Math.min(flat.length, items_per_line)
+    let line = []
     for (j=0; j<rem; j++) {
       line.push(flat.shift())
     }
     lines.push(line)
   }
 
-  console.log('var pos_pairs = [')
+  console.log('const pos_pairs = [')
   lines.forEach(function (line) {
     // line = line.map(function (v) { return '0x' + v.toString(16).toUpperCase() })
     console.log('  ', line.join(',') + ',')
@@ -92,7 +92,7 @@ function map_ascii (s, code, map) {
 }
 
 function define_ascii_map () {
-  var ret = new Uint8Array(0x800)
+  const ret = new Uint8Array(0x800)
   map_ascii('\b\f\n\t\r ,:',      AFLAG.NON_TOKEN, ret)
   map_ascii('\b\f\n\t\r ,:{}[]',  AFLAG.DELIM, ret)
   map_ascii('0123456789',         AFLAG.DECIMAL_END, ret)
@@ -107,14 +107,14 @@ function lpad (s, c, l) {
 }
 
 function print_ascii_map () {
-  var m = define_ascii_map()
-  console.log('var CMAP = [')
+  const m = define_ascii_map()
+  console.log('const CMAP = [')
   console.log('//0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F')
-  for (var row=0; row<16; row++) {
-    var line = []
-    for (var col=0; col<16; col++) {
-      var v = m[(row * 16) + col]
-      var vstr = v ? '0x' + lpad(v.toString(16).toUpperCase(), 0, 2) + ', ' : '0,    '
+  for (let row=0; row<16; row++) {
+    let line = []
+    for (let col=0; col<16; col++) {
+      let v = m[(row * 16) + col]
+      let vstr = v ? '0x' + lpad(v.toString(16).toUpperCase(), 0, 2) + ', ' : '0,    '
       line.push(vstr)
     }
     console.log(' ', line.join('') + '//', row.toString(16).toUpperCase())

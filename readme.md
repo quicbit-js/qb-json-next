@@ -7,14 +7,11 @@
 [downloads-image]: https://img.shields.io/npm/dm/qb-json-next.svg
 [npm-url]:         https://npmjs.org/package/qb-json-next
 
-A fast, zero-dependency, *validating* JSON parser (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
+A very fast, very light, zero-dependency, validating JSON tokenizer (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
 
-**qb-json-next introduces validation and incremental parsing!**
+qb-json-next provides core parsing and state management for converting raw JSON buffers into tokens in a tiny library.
 
-qb-json-next started out as an update to qb-json-tok (which is a bit faster but with no validation), but 
-made sense as a new package when finished.  The features and simplicity of qb-json-next make it far better choice for
-most use cases.
-
+Check out [qb-json-tokenizer](https://github.com/quicbit-js/qb-json-tokenizer) for a wrapper over this tokenization that makes it easier to parse arbitrary-size streaming chunks of JSON.
 
 **Complies with the 100% test coverage and minimum dependency requirements** of 
 [qb-standard](http://github.com/quicbit-js/qb-standard) . 
@@ -38,9 +35,9 @@ ps or "parse-state" object.  The ps object can be any object with a
     
 **for example, we can parse and print all tokens in a buffer like this**:
 
-    var next = require('qb-json-next')
+    const next = require('qb-json-next')
     
-    var ps = { next_src: new Buffer( '{ "a": [1,2,3] }' ) } 
+    const ps = { next_src: new Buffer( '{ "a": [1,2,3] }' ) } 
     while ( next(ps) ) {
       console.log( next.tokstr(ps) )                    // see documentation for tokstr() details 
     }
@@ -98,9 +95,8 @@ The ps.next_src property is checked before returning from next() whenever ps.src
 ps.next_src is moved to ps.src, limits are reset, and parsing continues with the new buffer.  This 
 allows parsing across buffers:
 
-    var next = require('qb-json-next')
-    
-    var ps = {}
+    const next = require('qb-json-next')
+    const ps = {}
     
     while (ps.next_src = get_next_buffer_somehow()) {
         while (next(ps)) {

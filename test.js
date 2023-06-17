@@ -14,15 +14,15 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-var test = require('test-kit').tape()
-var utf8 = require('qb-utf8-ez')
-var next = require('.')
-var POS = next.POS
+const test = require('test-kit').tape()
+const utf8 = require('qb-utf8-ez')
+const next = require('.')
+const POS = next.POS
 
 function src_tokens (ps) {
-  var toks = []
+  const toks = []
   do {
-    var t = next(ps, {err: function () {}})     // errors show up in token details, so don't throw errors
+    let t = next(ps, {err: function () {}})     // errors show up in token details, so don't throw errors
     t === ps.tok || err('bad return token: ' + t)
     toks.push(next.tokstr(ps, ps.tok === 0))    // more details for end token
   } while (ps.tok)
@@ -123,10 +123,10 @@ test('line and lineoff', function (t) {
     [ '{"a": 45, "b":\n true}',       '',          [ 2, 7 ] ],
     [ '\n{"a": 45, "b":\n true}',     '',          [ 3, 7 ] ],
     [ '\n\n{"a":\n 45, "b":\n true}', '',          [ 5, 7 ] ],
-  ], function (src, next_src) {
-    var ps = {src: utf8.buffer(src)}
+  ], function (src1, src2) {
+    const ps = {next_src: utf8.buffer(src1)}
     while (next(ps)) {}
-    ps.next_src = utf8.buffer(next_src)
+    ps.next_src = utf8.buffer(src2)
     while(next(ps)) {}
     return [ ps.line, ps.soff + ps.vlim - ps.lineoff + 1 ]
   })
@@ -345,8 +345,8 @@ test('next() errors', function (t) {
     [ '[{',     ' true}',     '',                 /unexpected token at 1..5/ ],
     [ '[',      'true, fax',  '',                 /bad value at 6..9/ ],
   ], function (s1, s2, s3) {
-    var sources = [s1, s2, s3]
-    var ps = {}
+    let sources = [s1, s2, s3]
+    let ps = {}
     while (sources.length) {
       ps.next_src = utf8.buffer(sources.shift())
       while (next(ps)) {}
@@ -355,11 +355,11 @@ test('next() errors', function (t) {
 })
 
 test('src not finished', function (t) {
-  var s1 = utf8.buffer('[1,2,3,4,')
-  var s2 = utf8.buffer('5]')
+  const s1 = utf8.buffer('[1,2,3,4,')
+  const s2 = utf8.buffer('5]')
 
-  var ps = {src: s1, next_src: s2 }
-  var exp = '[@0,d1@1,d1@3,d1@5,d1@7,d1@0,]@1,!@2:A_AV'
+  const ps = {src: s1, next_src: s2 }
+  const exp = '[@0,d1@1,d1@3,d1@5,d1@7,d1@0,]@1,!@2:A_AV'
   t.same(src_tokens(ps), exp, t.desc('finished', [s1, s2], exp))
   t.end()
 })
@@ -370,9 +370,9 @@ test('soff and vcount', function (t) {
     [ '[1, ',         '2,3,',             '4]',           { soffs: [ 0, 4, 8 ], vcounts: [ 1, 3, 5 ] } ],
     [ '[ {"a": 7, ',  '"b": [1,2,3] },',  ' true ]',      { soffs: [ 0, 11, 26 ], vcounts: [ 1, 6, 8 ] } ],
   ], function (s1, s2, s3) {
-    var sources = [s1, s2, s3]
-    var ret = {soffs: [], vcounts: []}
-    var ps = {}
+    const sources = [s1, s2, s3]
+    const ret = {soffs: [], vcounts: []}
+    const ps = {}
     while (sources.length) {
       ps.next_src = utf8.buffer(sources.shift())
       while (next(ps)) {}
@@ -406,24 +406,25 @@ test('sticky ecode', function (t) {
     [ '[tx',     '[@0:A_BF:[, !2@1:B:A_BF:[, !2@1:B:A_BF:[' ],
     [ '{tx',     '{@0:O_BF:{, !1@1:U:O_BF:{, !1@1:U:O_BF:{' ],
     ], function (src) {
-    var ps = {src: utf8.buffer(src)}
-    var last
-    var toks = []
-    while (next(ps, {err: function () {}})) {
-      last = next.tokstr(ps, 1)
+      const ps = {src: utf8.buffer(src)}
+      let last
+      let toks = []
+      while (next(ps, {err: function () {}})) {
+        last = next.tokstr(ps, 1)
+      }
+      toks.push(last)
+      toks.push(next.tokstr(ps, 1))
+      next(ps)
+      toks.push(next.tokstr(ps, 1))
+      toks[toks.length-1] === toks[toks.length-2] || err('not sticky: ' + toks.join(',   '))
+      return toks.join(', ')
     }
-    toks.push(last)
-    toks.push(next.tokstr(ps, 1))
-    next(ps)
-    toks.push(next.tokstr(ps, 1))
-    toks[toks.length-1] === toks[toks.length-2] || err('not sticky: ' + toks.join(',   '))
-    return toks.join(', ')
-  })
+  )
 })
 
 function parse_split (sources) {
-  var ret = []
-  var ps = {}
+  const ret = []
+  const ps = {}
   while (sources.length) {
     ps.next_src = utf8.buffer(sources.shift())
     ret.push(src_tokens(ps))

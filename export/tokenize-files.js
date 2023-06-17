@@ -17,16 +17,15 @@
 // run this script to generate pos_pairs and CMAP variables to stdout (can be copied and
 // pasted into index.js).
 
-var fs = require('fs')
-var next = require('..')
+const fs = require('fs')
+const next = require('..')
 
 function print_tokens (buf) {
-  var ps = {src: buf}
-  var res = ''
+  const ps = {next_src: buf}
   while (next(ps)) {
     console.log(next.tokstr(ps))
   }
 }
 
-var buf = fs.readFileSync('./blockchain-unconfirmed.json')
+const buf = fs.readFileSync('./blockchain-unconfirmed.json')
 print_tokens(buf)
