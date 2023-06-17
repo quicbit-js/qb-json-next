@@ -15,7 +15,6 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 const test = require('test-kit').tape()
-const utf8 = require('qb-utf8-ez')
 const next = require('.')
 const POS = next.POS
 
@@ -61,7 +60,7 @@ test('with lim', function (t) {
     [ '"x", 4\n, null, 3.2e5 , true, false,', 35,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35:A_BV' ],
     [ '"x", 4\n, null, 3.2e5 , true, false,', 50,    's3@0,d1@5,n@9,d5@15,t@23,f@29,!@35:B:A_BV' ],
   ], function (src, lim) {
-    return src_tokens({src: utf8.buffer(src), lim: lim})
+    return src_tokens({src: Buffer.from(src), lim: lim})
   })
 })
 
@@ -95,7 +94,7 @@ test('various', function (t) {
     [ '"x", 4\n, null, 3.2e5 , true, false',      's3@0,d1@5,n@9,d5@15,t@23,f@29,!@34:A_AV' ],
     [ '["a",1.3,\n\t{ "b" : ["v", "w"]\n}\t\n ]', '[@0,s3@1,d3@5,{@11,k3@13:[@19,s3@20,s3@25,]@28,}@30,]@34,!@35:A_AV' ],
   ], function (src) {
-    return src_tokens({src: utf8.buffer(src)})
+    return src_tokens({src: Buffer.from(src)})
   })
 })
 
@@ -124,9 +123,9 @@ test('line and lineoff', function (t) {
     [ '\n{"a": 45, "b":\n true}',     '',          [ 3, 7 ] ],
     [ '\n\n{"a":\n 45, "b":\n true}', '',          [ 5, 7 ] ],
   ], function (src1, src2) {
-    const ps = {next_src: utf8.buffer(src1)}
+    const ps = {next_src: Buffer.from(src1)}
     while (next(ps)) {}
-    ps.next_src = utf8.buffer(src2)
+    ps.next_src = Buffer.from(src2)
     while(next(ps)) {}
     return [ ps.line, ps.soff + ps.vlim - ps.lineoff + 1 ]
   })
@@ -151,7 +150,7 @@ test('object - no spaces', function (t) {
       [ '{"a":71,"b":',   '{@0,k3@1:d2@5,k3@8:!@12:K:O_BV:{' ],
       [ '{"a":71,"b":2',  '{@0,k3@1:d2@5,k3@8:!1@12:D:O_BV:{' ],
       [ '{"a":71,"b":2}', '{@0,k3@1:d2@5,k3@8:d1@12,}@13,!@14:A_AV' ],
-    ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+    ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('array - no spaces', function (t) {
@@ -170,7 +169,7 @@ test('array - no spaces', function (t) {
       [ '[83,"a",',   '[@0,d2@1,s3@4,!@8:A_BV:[' ],
       [ '[83,"a",2',  '[@0,d2@1,s3@4,!1@8:D:A_BV:[' ],
       [ '[83,"a",2]', '[@0,d2@1,s3@4,d1@8,]@9,!@10:A_AV' ],
-    ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+    ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('array - spaces', function (t) {
@@ -193,7 +192,7 @@ test('array - spaces', function (t) {
       [ '[ 83, "a" , 2',   '[@0,d2@2,s3@6,!1@12:D:A_BV:[' ],
       [ '[ 83, "a" , 2 ',  '[@0,d2@2,s3@6,d1@12,!@14:A_AV:[' ],
       [ '[ 83, "a" , 2 ]', '[@0,d2@2,s3@6,d1@12,]@14,!@15:A_AV' ],
-    ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+    ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('object - spaces', function (t) {
@@ -219,7 +218,7 @@ test('object - spaces', function (t) {
       [ ' { "a" : "x',    '{@1,k3@3:!2@9:T:O_BV:{' ],
       [ ' { "a" : "x" ',  '{@1,k3@3:s3@9,!@13:O_AV:{' ],
       [ ' { "a" : "x" }', '{@1,k3@3:s3@9,}@13,!@14:A_AV' ],
-    ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+    ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('incremental array', function (t) {
@@ -297,7 +296,7 @@ test('incomplete', function (t) {
     [ '[3.05E-2,4.', '[@0,d7@1,!2@9:T:A_BV:[' ],
     [ '{"a',         '{@0,k2@1:!@3:T:O_BF:{' ],
     [ '{"a": ',      '{@0,k3@1:!@6:K:O_BV:{' ],
-  ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+  ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('bad value', function (t) {
@@ -312,7 +311,7 @@ test('bad value', function (t) {
     [ '{"a": 3^6}', '{@0,k3@1:!2@6:B:O_BV:{' ],
     [ ' 1f',        '!2@1:B:A_BF' ],
     [ '{"a": t,',   '{@0,k3@1:!2@6:B:O_BV:{' ],
-  ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+  ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('unexpected value', function (t) {
@@ -336,7 +335,7 @@ test('unexpected value', function (t) {
     [ '{ 2.4',            '{@0,!3@2:U:O_BF:{' ],
     [ '[ 1, 2 ] "c',      '[@0,d1@2,d1@5,]@7,!2@9:U:A_AV' ],
     [ '[ 1, 2 ] "c"',     '[@0,d1@2,d1@5,]@7,!3@9:U:A_AV' ],
-  ], function (src) { return src_tokens({src: utf8.buffer(src)}) })
+  ], function (src) { return src_tokens({src: Buffer.from(src)}) })
 })
 
 test('next() errors', function (t) {
@@ -348,15 +347,15 @@ test('next() errors', function (t) {
     let sources = [s1, s2, s3]
     let ps = {}
     while (sources.length) {
-      ps.next_src = utf8.buffer(sources.shift())
+      ps.next_src = Buffer.from(sources.shift())
       while (next(ps)) {}
     }
   }, {assert: 'throws'})
 })
 
 test('src not finished', function (t) {
-  const s1 = utf8.buffer('[1,2,3,4,')
-  const s2 = utf8.buffer('5]')
+  const s1 = Buffer.from('[1,2,3,4,')
+  const s2 = Buffer.from('5]')
 
   const ps = {src: s1, next_src: s2 }
   const exp = '[@0,d1@1,d1@3,d1@5,d1@7,d1@0,]@1,!@2:A_AV'
@@ -374,7 +373,7 @@ test('soff and vcount', function (t) {
     const ret = {soffs: [], vcounts: []}
     const ps = {}
     while (sources.length) {
-      ps.next_src = utf8.buffer(sources.shift())
+      ps.next_src = Buffer.from(sources.shift())
       while (next(ps)) {}
       next.checke(ps)
       ret.soffs.push(ps.soff)
@@ -406,7 +405,7 @@ test('sticky ecode', function (t) {
     [ '[tx',     '[@0:A_BF:[, !2@1:B:A_BF:[, !2@1:B:A_BF:[' ],
     [ '{tx',     '{@0:O_BF:{, !1@1:U:O_BF:{, !1@1:U:O_BF:{' ],
     ], function (src) {
-      const ps = {src: utf8.buffer(src)}
+      const ps = {src: Buffer.from(src)}
       let last
       let toks = []
       while (next(ps, {err: function () {}})) {
@@ -426,7 +425,7 @@ function parse_split (sources) {
   const ret = []
   const ps = {}
   while (sources.length) {
-    ps.next_src = utf8.buffer(sources.shift())
+    ps.next_src = Buffer.from(sources.shift())
     ret.push(src_tokens(ps))
   }
   return ret
