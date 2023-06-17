@@ -26,8 +26,7 @@
     "performance"
   ],
   "files": [
-    "index.js",
-    "test.js"
+    "index.js"
   ],
   "author": "Matthew Voss",
   "license": "ISC"
