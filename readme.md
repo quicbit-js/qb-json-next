@@ -211,7 +211,7 @@ The TOK object maps names to the ps.tok integers returned by next().  For all bu
 token returned is simply the same as the first byte encountered.  't' for true, '{' for object start, etc.
 Here they are just as they are defined in the code:
 
-    var TOK = {
+    const TOK = {
       ARR: 91,        // '['    - array start   
       ARR_END: 93,    // ']'    - array end
       DEC: 100,       // 'd'    - a decimal value starting with: -, 0, 1, ..., 9
@@ -231,10 +231,10 @@ of key and value and the byte offset into ps.src.
 Setting detail option to true will include the abbreviated position name (see POS), and a string representation of
 the stack.  For example:
 
-    var next = require('qb-json-next')
+    const next = require('qb-json-next')
     
     console.log('First object:')
-    var ps = {src: new Buffer('{ "a": [1,2,3] }')}
+    const ps = {next_src: new Buffer('{ "a": [1,2,3] }')}
     while (next(ps)) {
       console.log(next.tokstr(ps))
     }
@@ -350,7 +350,7 @@ give some level readability (though admittedly still very brief).  Here they are
 defined in the code:
 
     // values for ps.pos(ition).  LSB (0x7F) are reserved for token ascii value.
-    var POS = {
+    const POS = {
       A_BF: 0x080,   // in array, before first value
       A_BV: 0x100,   // in array, before value
       A_AV: 0x180,   // in array, after value
@@ -379,7 +379,7 @@ the next.ECODE object:
 The ECODE object maps names of special parsing "end" states to integers used by ps.ecode.   When one of these special
 states occurs, **ps.tok is set to zero** and ps.ecode is set to one of the following:
 
-    var ECODE = {
+    const ECODE = {
       BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
       TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
       KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
@@ -394,11 +394,11 @@ The parse graph is a simple mapping of parse states to other allowed states.  Fo
 in the most efficent manner possible.  We encode position state (ps.pos) along with ascii values in the same 
 low integer to create the graph.
 
-    var state1 = states[state0 + ascii-value]
+    let state1 = states[state0 + ascii-value]
 
 If the state isn't allowed, then state1 is zero.  If allowed, it is the new ps.pos value - the next position.
 
-    var state2 = states[state1 + ascii-value]
+    let state2 = states[state1 + ascii-value]
     
 This simple mechanism works for all state transitions, except when we leave context of an object or array.  
 When a '}' or ']' is encountered, the new state will have no context set (you can see this for yourself in
