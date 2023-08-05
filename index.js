@@ -14,7 +14,10 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-// values for ps.pos(ition).  LSB (0x7F) are reserved for token ascii value.
+// @ts-check
+
+// possible values for ps.pos(ition).  
+// Note that LSB (0x7F) are reserved for token ascii value.
 const POS = {
   A_BF: 0x080,   // in array, before first value
   A_BV: 0x100,   // in array, before value
@@ -26,7 +29,8 @@ const POS = {
   O_AV: 0x400,   // in object, after value
 }
 
-// values for ps.tok(en).  All but string and decimal are represented by the first ascii byte encountered
+// Possible values for ps.tok(en).  All but string and decimal are represented 
+// by the first ascii byte encountered
 const TOK = {
   ARR: 91,        // [    array start
   ARR_END: 93,    // ]    array end
@@ -40,6 +44,16 @@ const TOK = {
   // BYT: 120        // x   byte, reserved token
   OBJ: 123,       // {    object start
   OBJ_END: 125,   // }    object end
+}
+
+// For an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
+// and ps.ecode will be one of the following
+const ECODE = {
+  BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
+  TRUNC_DEC: 68,    // 'D'  end of buffer was a decimal ending with a digit (0-9). it is *possibly* unfinished
+  KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
+  TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
+  UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
 }
 
 // ASCII flags
@@ -82,19 +96,11 @@ const CMAP = [
   0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    // F
 ]
 
-// for an unexpected or illegal value, or if src limit is reached before a value is complete, ps.tok will be zero
-// and ps.ecode will be one of the following:
-const ECODE = {
-  BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
-  TRUNC_DEC: 68,    // 'D'  end of buffer was a decimal ending with a digit (0-9). it is *possibly* unfinished
-  KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
-  TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
-  UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
-}
-
-// convert map of strings to array of arrays (of bytes)
+// convert {first-ascii-char: remaining-ascii-string} to  {first-ascii-byte: remaining-ascii-bytes}
 function ascii_to_bytes (strings) {
-  return Object.keys(strings).reduce(function (a, c) {
+  return Object.keys(strings).reduce(
+    /** @type {function(number[][], string): number[][]} */
+    function (a, c ) {
     a[c.charCodeAt(0)] = strings[c].split('').map(function (c) { return c.charCodeAt(0) })
     return a
   }, [])
@@ -102,9 +108,7 @@ function ascii_to_bytes (strings) {
 
 const TOK_BYTES = ascii_to_bytes({ f: 'alse', t: 'rue', n: 'ull' })
 
-const POS2NAME = Object.keys(POS).reduce(function (a, n) { a[POS[n]] = n; return a }, [])
-
-function posname (pos) { return POS2NAME[pos] || '???' }
+const POS2NAME = Object.keys(POS).reduce(function (/** @type {string[]}*/ a, /** @type {string} */ n) { a[POS[n]] = n; return a }, [])
 
 function pos_map () {
   const ret = []
@@ -119,7 +123,7 @@ function pos_map () {
     477,384,627,768,637,384,755,768,826,896,987,128,996,1024,998,1024,
     1006,1024,1011,1024,1012,1024,1019,512,1068,640,1149,384,
   ]
-  for (i=0; i<pos_pairs.length; i+=2) {
+  for (let i=0; i<pos_pairs.length; i+=2) {
     ret[pos_pairs[i]] = pos_pairs[i+1]
   }
   return ret
@@ -128,9 +132,8 @@ function pos_map () {
 const POS_MAP = pos_map()
 
 // skip as many bytes of src that match bsrc, up to lim.
-// return
-//     i    the new index after all bytes are matched (past matched bytes)
-//    -i    (negative) the index of the first unmatched byte (past matched bytes)
+// return (byte offset) after all bytes from bsrc are matched or -(byte offset) of first
+//                  unmatched byte, if unmatched. 
 function skip_bytes (src, off, lim, bsrc) {
   let blen = bsrc.length
   if (blen > lim - off) { blen = lim - off }
@@ -164,41 +167,141 @@ function skip_dec (src, off, lim) {
   return (off < lim && (CMAP[src[off]] & DELIM)) ? off : -off
 }
 
-function init (ps) {
-  ps.soff = ps.soff || 0                  // prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
-  ps.src = ps.src || []
-  ps.lim = ps.lim == null ? ps.src.length : ps.lim
-  ps.koff = ps.koff || ps.soff            // key offset
-  ps.klim = ps.klim || ps.koff            // key limit
-  ps.voff = ps.voff || ps.klim            // value offset
-  ps.vlim = ps.vlim || ps.voff            // value limit
-  ps.tok = ps.tok || 0                    // token/byte being handled
-  ps.stack = ps.stack || []               // context ascii codes 91 (array) and 123 (object)
-  ps.pos = ps.pos || POS.A_BF             // container context and relative position encoded as an int
-  ps.ecode = ps.ecode || 0                // end-code (error or state after ending, where ps.tok === 0)
-  ps.vcount = ps.vcount || 0              // number of complete values parsed
-  ps.line = ps.line || 1                  // newline count (char 0x0A) + 1
-  ps.lineoff = ps.lineoff || ps.soff      // total byte offset to beginning of current line. col = soff + vlim - lineoff
-  if (ps.next_src) { next_src(ps) }
-}
-
+//
 // switch ps.src to ps.next_src if conditions are right (ps.src is null or is complete without errors)
+// 
 function next_src (ps) {
   if (ps.ecode || (ps.src && ps.vlim < ps.lim)) {
     return false
   }
   if (ps.next_src.length === 0) {
-    ps.next_src = null
     return false
   }
   ps.soff += ps.src && ps.src.length || 0
   ps.src = ps.next_src
-  ps.next_src = null
+  ps.next_src = []
   ps.koff = ps.klim = ps.voff = ps.vlim = ps.tok = ps.ecode = 0
   ps.lim = ps.src.length
   return true
 }
 
+ // Lazy-initialize an object properties to hold all ParseState values/defaults. The object is modified in place to support
+ // legacy usage. The object is also returned as a typed ParseState to support Type clarity with type script and documentation. 
+ // Though functionaly equivalent, use the returned object to show type-clarity.
+function init (ps) {
+  ps.soff = ps.soff || 0                  // prior src offset.  e.g. ps.soff + ps.vlim = total byte offset from start
+  ps.src = ps.src || []
+  ps.lim = ps.lim == null ? ps.src.length : ps.lim
+  ps.koff = ps.koff || ps.soff            
+  ps.klim = ps.klim || ps.koff            
+  ps.voff = ps.voff || ps.klim            
+  ps.vlim = ps.vlim || ps.voff            
+  ps.tok = ps.tok || 0                    
+  ps.stack = ps.stack || []               
+  ps.pos = ps.pos || POS.A_BF             
+  ps.ecode = ps.ecode || 0                
+  ps.vcount = ps.vcount || 0              
+  ps.line = ps.line || 1                  
+  ps.lineoff = ps.lineoff || 0            
+  ps.next_src = ps.next_src || []         
+  if (ps.next_src.length) { next_src(ps) }
+  return ps
+}
+
+// Handle cases where tokenization has stopped due to unexpected
+// or invalid bytes or running out of buffer. If smooth buffer
+// transition is possible, seamless transition is executed with next_src.
+// If not, ecode is updated to facilitate further handling. Err handling is 
+// invoked for bad or invalid bytes.
+function end_src (ps, opt) {
+  switch (ps.ecode) {
+    case 0:
+      if (ps.pos === POS.O_AK || ps.pos === POS.O_BV) {
+        ps.ecode = ECODE.KEY_NO_VAL
+      } else {
+        if (ps.next_src && next_src(ps)) { return next(ps) }
+      }
+      break
+    case ECODE.BAD_VALUE: case ECODE.UNEXPECTED:
+      ps.tok = 0
+      if (opt && (typeof opt.err === 'function')) {
+        opt.err(ps)
+        return ps.tok
+      } else {
+        checke(ps)  // throws error
+      }
+    // any other ecode is just sticky (prevents progress)
+  }
+  return ps.tok = 0
+}
+
+function handle_neg (ps, opt) {
+  ps.vlim = -ps.vlim
+  if (ps.vlim >= ps.lim) {
+    ps.ecode =
+      ps.tok === TOK.DEC && (CMAP[ps.src[ps.vlim - 1]] & DECIMAL_END)
+        ? ECODE.TRUNC_DEC
+        : ECODE.TRUNCATED
+  } else {
+    ps.ecode = ECODE.BAD_VALUE
+    ps.vlim++
+  }
+  return end_src(ps, opt)
+}
+
+function handle_unexp (ps, opt) {
+  if (ps.vlim < 0) { ps.vlim = -ps.vlim }
+  ps.ecode = ECODE.UNEXPECTED
+  return end_src(ps, opt)
+}
+
+
+// Default error handler. Throws an error with the given message and parse_state as a property of the error.
+function err (msg, ps) {
+  const ctx = '(line ' + (ps.line + 1) + ', col ' + (ps.soff + ps.voff - ps.lineoff) + ', tokstr ' + tokstr(ps, true) + ')'
+  /** @type {*} */
+  const e = new Error(msg + ': ' + ctx)
+  e.parse_state = ps
+  throw e
+}
+
+//
+// PUBLIC API
+//
+
+
+/**
+ * Return the abbreviated string name for a Position integer code.
+ * 
+ * @param {number} pos Position integer state-code as stored in ParseState.pos
+ * @returns {string}   Abbreviated string name for the code
+ */
+function posname (pos) { return POS2NAME[pos] || '???' }
+
+/**
+ * Create and return a new ParseState object.
+ */
+function ps (src) {
+  let ret = {src: src}
+  return init(ret)
+}
+
+// Parses next token from ps.src, *very quickly*. Call this function repeatedly to tokenize JSON buffers
+// passing in the same ParseState which is updated in place to the next key/value in the buffer.
+// 
+//    ps  object holding parse state context/position and current token to be updated to next token state.
+//    opt optional override for error handling
+//    
+// Return the token value successfully parsed TOK.string, TOK.number... or zero if incomplete or error
+// 
+// For Example:
+// 
+//   const next = require('qb-json-next')
+//   const someJSON = '{"a": "some",\n "b": "json to parse", \n: "c": [1.1, 2.5, 33]}'
+//   const ps = next.ps(Buffer.from(someJSON)
+//   while (next(ps)) {
+//      console.log(next.tokstr(ps))
+//   }
 function next (ps, opt) {
   if (!ps.pos) { init(ps) }
   if (ps.ecode !== 0) {                               // ecode is sticky (requires intentional fix)
@@ -294,60 +397,19 @@ function next (ps, opt) {
   return end_src(ps, opt)
 }
 
-function end_src (ps, opt) {
-  switch (ps.ecode) {
-    case 0:
-      if (ps.pos === POS.O_AK || ps.pos === POS.O_BV) {
-        ps.ecode = ECODE.KEY_NO_VAL
-      } else {
-        if (ps.next_src && next_src(ps)) { return next(ps) }
-      }
-      break
-    case ECODE.BAD_VALUE: case ECODE.UNEXPECTED:
-      ps.tok = 0
-      if (opt && (typeof opt.err === 'function')) {
-        opt.err(ps)
-        return ps.tok
-      } else {
-        checke(ps)  // throws error
-      }
-    // any other ecode is just sticky (prevents progress)
-  }
-  return ps.tok = 0
-}
-
-function handle_neg (ps, opt) {
-  ps.vlim = -ps.vlim
-  if (ps.vlim >= ps.lim) {
-    ps.ecode =
-      ps.tok === TOK.DEC && (CMAP[ps.src[ps.vlim - 1]] & DECIMAL_END)
-        ? ECODE.TRUNC_DEC
-        : ECODE.TRUNCATED
-  } else {
-    ps.ecode = ECODE.BAD_VALUE
-    ps.vlim++
-  }
-  return end_src(ps, opt)
-}
-
-function handle_unexp (ps, opt) {
-  if (ps.vlim < 0) { ps.vlim = -ps.vlim }
-  ps.ecode = ECODE.UNEXPECTED
-  return end_src(ps, opt)
-}
-
-function err (msg, ps) {
-  const ctx = '(line ' + (ps.line + 1) + ', col ' + (ps.soff + ps.voff - ps.lineoff) + ', tokstr ' + tokstr(ps, true) + ')'
-  const e = new Error(msg + ': ' + ctx)
-  e.parse_state = ps
-  throw e
-}
-
+// Convenience function to throw error if parse state shows unexpected or invalid value encountered.
+// Throw error is the default behavior of next(), but can be overridden with the err override
+// option:
+// 
+//    next(ps, { err: (ps) => {handle-error-my-way...} })
 function checke (ps) {
   ps.ecode !== ECODE.UNEXPECTED || err('unexpected token at ' + ps.voff + '..' + ps.vlim, ps)
   ps.ecode !== ECODE.BAD_VALUE || err('bad value at ' + ps.voff + '..' + ps.vlim, ps)
 }
 
+// Return the parse state as a brief string.
+//    ps Parse state that was updated by calling next(ps)
+//    detail (optional)  Pass true to print more detail including the position state and stack context
 function tokstr (ps, detail) {
   const keystr = ps.koff === ps.klim ? '' : 'k' + (ps.klim - ps.koff) + '@' + ps.koff + ':'
   const vlen = (ps.vlim === ps.voff || (CMAP[ps.tok] & NO_LEN_TOKENS)) ? '' : ps.vlim - ps.voff
@@ -366,27 +428,14 @@ function tokstr (ps, detail) {
   return ret
 }
 
-next.next = next
-next.tokstr = tokstr
-next.posname = posname
 next.checke = checke
-next.err = err
-next.TOK = TOK
-next.POS = POS
-next.ECODE = ECODE
+next.next = next
+next.posname = posname
+next.ps = ps
+next.tokstr = tokstr
 
-next._init = init
-next._skip_str = skip_str
-next._skip_dec = skip_dec
-next._skip_bytes = skip_bytes
-next._POS_MAP = POS_MAP
-next._AFLAG = {
-  NON_TOKEN: NON_TOKEN,
-  DELIM: DELIM,
-  DECIMAL_END: DECIMAL_END,
-  DECIMAL_ASCII: DECIMAL_ASCII,
-  NO_LEN_TOKENS: NO_LEN_TOKENS,
-}
-next._TOK_BYTES = TOK_BYTES,
+next.ECODE = ECODE
+next.POS = POS
+next.TOK = TOK
 
 module.exports = next

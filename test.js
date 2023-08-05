@@ -15,13 +15,14 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 const test = require('test-kit').tape()
+const qbJsonTokenizer = require('qb-json-tokenizer')
 const next = require('.')
 const POS = next.POS
 
 function src_tokens (ps) {
   const toks = []
   do {
-    let t = next(ps, {err: function () {}})     // errors show up in token details, so don't throw errors
+    let t = next.next(ps, {err: function () {}})     // errors show up in token details, so don't throw errors
     t === ps.tok || err('bad return token: ' + t)
     toks.push(next.tokstr(ps, ps.tok === 0))    // more details for end token
   } while (ps.tok)
@@ -124,9 +125,9 @@ test('line and lineoff', function (t) {
     [ '\n\n{"a":\n 45, "b":\n true}', '',          [ 5, 7 ] ],
   ], function (src1, src2) {
     const ps = {next_src: Buffer.from(src1)}
-    while (next(ps)) {}
+    while (next.next(ps)) {}
     ps.next_src = Buffer.from(src2)
-    while(next(ps)) {}
+    while(next.next(ps)) {}
     return [ ps.line, ps.soff + ps.vlim - ps.lineoff + 1 ]
   })
 })
@@ -311,7 +312,8 @@ test('bad value', function (t) {
     [ '{"a": 3^6}', '{@0,k3@1:!2@6:B:O_BV:{' ],
     [ ' 1f',        '!2@1:B:A_BF' ],
     [ '{"a": t,',   '{@0,k3@1:!2@6:B:O_BV:{' ],
-  ], function (src) { return src_tokens({src: Buffer.from(src)}) })
+  ], function (src) { 
+    return src_tokens(next.ps(Buffer.from(src))) })
 })
 
 test('unexpected value', function (t) {
@@ -348,7 +350,7 @@ test('next() errors', function (t) {
     let ps = {}
     while (sources.length) {
       ps.next_src = Buffer.from(sources.shift())
-      while (next(ps)) {}
+      while (next.next(ps)) {}
     }
   }, {assert: 'throws'})
 })
@@ -374,7 +376,7 @@ test('soff and vcount', function (t) {
     const ps = {}
     while (sources.length) {
       ps.next_src = Buffer.from(sources.shift())
-      while (next(ps)) {}
+      while (next.next(ps)) {}
       next.checke(ps)
       ret.soffs.push(ps.soff)
       ret.vcounts.push(ps.vcount)
@@ -408,12 +410,12 @@ test('sticky ecode', function (t) {
       const ps = {src: Buffer.from(src)}
       let last
       let toks = []
-      while (next(ps, {err: function () {}})) {
+      while (next.next(ps, {err: function () {}})) {
         last = next.tokstr(ps, 1)
       }
       toks.push(last)
       toks.push(next.tokstr(ps, 1))
-      next(ps)
+      next.next(ps)
       toks.push(next.tokstr(ps, 1))
       toks[toks.length-1] === toks[toks.length-2] || err('not sticky: ' + toks.join(',   '))
       return toks.join(', ')
