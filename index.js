@@ -437,5 +437,10 @@ next.tokstr = tokstr
 next.ECODE = ECODE
 next.POS = POS
 next.TOK = TOK
+next._skip_bytes = skip_bytes
+next._skip_dec = skip_dec
+next._skip_str = skip_str
+next._TOK_BYTES = TOK_BYTES
+next._init = init
 
 module.exports = next
