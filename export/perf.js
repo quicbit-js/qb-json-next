@@ -51,4 +51,24 @@ parsed 144.33352184295654 MB in 0.441 seconds
 parsed 144.33352184295654 MB in 0.437 seconds
 parsed 144.33352184295654 MB in 0.458 seconds
 321.742135182694 MB/second
+
+Result on 2023 MacBook Pro M2 chip (x64 interpreted): 2024-01-20
+read /Users/dad/dev/json-samples/cache_150mb.json
+parsed 144.33352184295654 MB in 0.612 seconds
+parsed 144.33352184295654 MB in 0.642 seconds
+parsed 144.33352184295654 MB in 0.636 seconds
+parsed 144.33352184295654 MB in 0.636 seconds
+parsed 144.33352184295654 MB in 0.635 seconds
+228.30357773324351 MB/second
+
+Result on 2023 MacBook Pro M2 chip (arm native): 2024-01-20
+
+read /Users/dad/dev/json-samples/cache_150mb.json
+parsed 144.33352184295654 MB in 0.319 seconds
+parsed 144.33352184295654 MB in 0.329 seconds
+parsed 144.33352184295654 MB in 0.325 seconds
+parsed 144.33352184295654 MB in 0.326 seconds
+parsed 144.33352184295654 MB in 0.325 seconds
+444.3766066593489 MB/second
+
  */
