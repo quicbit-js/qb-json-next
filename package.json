@@ -5,7 +5,10 @@
   "homepage": "https://github.com/quicbit-js/qb-json-next",
   "url": "https://github.com/quicbit-js/qb-json-next/issues",
   "email": "support@quicbit.com",
-  "repository": "quicbit-js/qb-json-next",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quicbit-js/qb-json-next.git"
+  },
   "types": "./index.d.ts",
   "devDependencies": {
     "tape": "^5.6.3",
