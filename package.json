@@ -14,7 +14,9 @@
   "scripts": {
     "test": "tape test.js",
     "perf": "node export/perf.js",
-    "cov": "tap --coverage-report=html test.js"
+    "cov": "tap --coverage-report=html test.js",
+    "preversion": "npm test",
+    "postversion": "git push && npm publish"
   },
   "keywords": [
     "fast",
