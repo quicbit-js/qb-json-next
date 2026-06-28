@@ -30,27 +30,34 @@ Check out [qb-json-tokenizer](https://github.com/quicbit-js/qb-json-tokenizer) f
 
 ## How it compares
 
-For a JSON tokenizer/parser, both raw speed and code footprint matter — the latter
-especially in the browser. Throughput is on 64 MB of representative JSON (Apple M2 Pro,
-Node 22); bundle size is esbuild `--minify` + gzip, including transitive dependencies:
+For a JSON tokenizer/parser, both raw speed and code footprint matter — the latter especially
+in the browser. Throughput is on 64 MB of representative JSON (Apple M2 Pro, Node 22).
+**Browser bundle** is the real total shipped to a browser: esbuild `--minify` + gzip,
+**including every transitive dependency *and* the Node `Buffer`/`Stream` polyfills** a bundler
+must inject:
 
-| library | role | MB/s | vs `JSON.parse` | bundle (min+gzip) | deps | no Node polyfill |
-|---|---|--:|--:|--:|--:|:--:|
-| `JSON.parse` (native, C++) | parse → value tree | ~700 | 1.00× | built-in | — | ✅ |
-| **qb-json-next** `next()` | **tokenizer (structure)** | **640** | **0.92×** | **2.0 KB** | 0 | ✅ |
-| qb-json-strict `next_strict()` | + RFC 8259 content validation | 420 | 0.60× | 3.0 KB | 1 | ✅ |
-| @streamparser/json | tokenizer / parser | 84 / 70 | 0.12× | 5.6 KB | 0 | ✅ |
-| clarinet | SAX parser | 135 | 0.19× | 3.6 KB † | 0 | ⚠️ stream |
-| jsonparse | streaming parser | 98 | 0.14× | 2.2 KB † | 0 | ⚠️ Buffer |
+| library | role | MB/s | vs `JSON.parse` | browser bundle (min+gzip) | needs in browser |
+|---|---|--:|--:|--:|---|
+| `JSON.parse` (native, C++) | parse → value tree | ~700 | 1.00× | 0 KB (built-in) | nothing |
+| **qb-json-next** `next()` | **tokenizer (structure)** | **640** | **0.92×** | **2.2 KB** | nothing |
+| qb-json-strict `next_strict()` | + RFC 8259 content validation | 420 | 0.60× | 3.2 KB | nothing |
+| @streamparser/json | tokenizer / parser | 84 / 70 | 0.12× | 5.6 KB | nothing (`TextDecoder`) |
+| jsonparse | streaming parser | 98 | 0.14× | 10.7 KB | Buffer polyfill |
+| clarinet | SAX parser | 135 | 0.19× | 51.4 KB | Buffer + Stream polyfills |
 
-† bundle excludes the Node `Buffer` / `Stream` polyfill these need in a browser (adds several KB more).
+Watch out for "zero dependencies": clarinet and jsonparse declare none, but they assume Node's
+built-in `Buffer`/`Stream`, which a browser must polyfill — and the Stream polyfill
+(`readable-stream` & friends) is large, which is why clarinet really costs **~51 KB gzipped**.
+qb uses no Node APIs, so what you see is what you ship.
 
 qb-json-next is the **fastest pure-JavaScript JSON tokenizer** measured here — roughly
 **5–8× the throughput** of other streaming JS parsers, in a **~2 KB gzipped**, zero-dependency,
-zero-polyfill bundle, and reaching **~0.9× the speed of native `JSON.parse`** (which is C++ and
-builds a full value tree rather than tokenizing). When you also need RFC 8259 content
-conformance, [qb-json-strict](https://github.com/quicbit-js/qb-json-strict) adds it for ~1 KB
-more. (Benchmark/footprint methodology lives in qb-json-strict's `export/compare.js`.)
+zero-polyfill bundle (about **23× smaller than clarinet**), and reaching **~0.9× the speed of
+native `JSON.parse`** (which is C++ and builds a full value tree rather than tokenizing). When
+you also need RFC 8259 content conformance,
+[qb-json-strict](https://github.com/quicbit-js/qb-json-strict) adds it for ~1 KB more.
+(Benchmark/footprint methodology lives in qb-json-strict's `export/compare.js` and
+`export/bundle-size.mjs`.)
 
 
 # install
