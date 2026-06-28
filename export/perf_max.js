@@ -15,6 +15,7 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 const fs = require('fs')
+const path = require('path')
 
 function parse (buf) {
   const t0 = new Date()
@@ -26,7 +27,8 @@ function parse (buf) {
   return new Date() - t0;
 }
 
-const fname = '/Users/dad/dev/json-samples/cache_150mb.json'
+// Pass a JSON file as the first argument, or default to the sample JSON in this directory.
+const fname = process.argv[2] || path.join(__dirname, 'blockchain-unconfirmed.json')
 const buf = fs.readFileSync(fname)
 console.log('theoretical maximum - no processing')
 console.log('read', fname)

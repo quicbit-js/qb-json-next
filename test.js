@@ -15,7 +15,6 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 const test = require('test-kit').tape()
-const qbJsonTokenizer = require('qb-json-tokenizer')
 const next = require('.')
 const POS = next.POS
 

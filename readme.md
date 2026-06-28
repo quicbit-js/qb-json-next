@@ -7,7 +7,16 @@
 [downloads-image]: https://img.shields.io/npm/dm/qb-json-next.svg
 [npm-url]:         https://npmjs.org/package/qb-json-next
 
-A very fast, very light, zero-dependency, validating JSON tokenizer (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
+A very fast, very light, zero-dependency JSON tokenizer (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
+
+next() validates JSON **structure** as it tokenizes — nesting, commas, colons, key/value
+placement, and well-formed string and bracket boundaries — and reports the exact byte offset
+of any structural error. To stay fast, it does **not** validate the internal grammar of number
+and string *content*: a token such as `01`, `1.2.3`, or `1e` is returned as a single decimal
+(`d`) token, and string content (escape sequences, control characters, UTF-8) is passed through
+untouched. Decoding and content-validation of individual values is left to the consumer
+(e.g. `parseFloat`, escape handling). If you need full RFC 8259 number/string conformance,
+validate token values as you read them.
 
 qb-json-next provides core parsing and state management for converting raw JSON buffers into tokens in a tiny library.
 
