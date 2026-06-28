@@ -46,7 +46,7 @@ ps or "parse-state" object.  The ps object can be any object with a
 
     const next = require('qb-json-next')
     
-    const ps = { next_src: new Buffer( '{ "a": [1,2,3] }' ) } 
+    const ps = { next_src: Buffer.from( '{ "a": [1,2,3] }' ) } 
     while ( next(ps) ) {
       console.log( next.tokstr(ps) )                    // see documentation for tokstr() details 
     }
@@ -135,7 +135,7 @@ with no subsequent value (array and object start brackets count as a whole value
                                 
     '[ 11, 1'                   '2, 13 ]'                       NO - split number 12
     '{ "a'                      '": true, "b": [82] }'          NO - split key "a" 
-    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer as array start [  
+    '{ "a": true, "b": '        '[82] }'                        NO - key "b" is in different buffer from array start [  
 
 
 ### Parsing buffers with any arbitrary split
@@ -168,7 +168,7 @@ When ps.koff = ps.klim, then there is no key.  Object values always have a key, 
 
 When ps.voff = ps.vlim, then there is no value.  
 
-Remember that src data is UTF-8 encouded, not UTF-16 encoded like javascript strings so non-asci will
+Remember that src data is UTF-8 encoded, not UTF-16 encoded like javascript strings so non-ascii will
 not directly translate to strings.  **[qb-utf8-to-str-tiny](https://github.com/quicbit-js/qb-utf8-to-str-tiny)** is a light-weight library (though not fast) for 
 converting UTF-8 to javascript strings.  Also note that string offsets include the quotes (ascii 34)
 
@@ -192,17 +192,17 @@ For example:
     | |       | | | |  |----------------------   9      12      15      19        "a"   "hi"       {
     | |       | | | |  |                                                                           
     | |       | | | |  |                       (key/value flushed out - to callback)               
-    | |       | | | |  |                        12      12      19      19                         {
+    | |       | | | |  |                        19      19      19      19                         {
     | |       | | | |  |                                                                           
     | |       | | | |  |     |----------------  21      24      25      25        "b"              {
     | |       | | | |  |     |                                                                     
     | |       | | | |  |     | |--------------  21      24      26      27        "b"      [      {[
     | |       | | | |  |     | |                                                                   
-    | |       | | | |  |     | |    |---------  24      24      32      32                        {[
+    | |       | | | |  |     | |    |---------  27      27      27      27                        {[
     | |       | | | |  |     | |    |                                                              
-    | |       | | | |  |     | |    | |-------  24      24      32      33                 ]       {
+    | |       | | | |  |     | |    | |-------  32      32      33      34                 ]       {
     | |       | | | |  |     | |    | |
-    | |       | | | |  |     | |    | | |-----  24      24      35      36                 ]       
+    | |       | | | |  |     | |    | | |-----  34      34      35      36                 }       
     | |       | | | |  |     | |    | | |
               1         2         3      
     01234567890123456789012345678901234567
@@ -243,13 +243,13 @@ the stack.  For example:
     const next = require('qb-json-next')
     
     console.log('First object:')
-    const ps = {next_src: new Buffer('{ "a": [1,2,3] }')}
+    const ps = {next_src: Buffer.from('{ "a": [1,2,3] }')}
     while (next(ps)) {
       console.log(next.tokstr(ps))
     }
     
     console.log('Second object with detail = true:')
-    ps.next_src = new Buffer(', { "b": [4,5,6] }')
+    ps.next_src = Buffer.from(', { "b": [4,5,6] }')
     while (next(ps)) {
       console.log(next.tokstr(ps, true))
     }
@@ -355,7 +355,7 @@ next.pos positions are defined in the next.POS object:
 
 The POS object maps names to the ps.pos values used by next().  
 ps.pos integers allow super-fast performance, but are not user-friendly, so these POS names
-give some level readability (though admittedly still very brief).  Here they are as
+give some level of readability (though admittedly still very brief).  Here they are as
 defined in the code:
 
     // values for ps.pos(ition).  LSB (0x7F) are reserved for token ascii value.
@@ -390,7 +390,7 @@ states occurs, **ps.tok is set to zero** and ps.ecode is set to one of the follo
 
     const ECODE = {
       BAD_VALUE: 66,    // 'B'  encountered invalid byte or series of bytes
-      TRUNC_DEC: 68,    // 'D'  end of buffer was value was a decimal ending with a digit (0-9). it is *possibly* unfinished
+      TRUNC_DEC: 68,    // 'D'  end of buffer was a decimal ending with a digit (0-9). it is *possibly* unfinished
       KEY_NO_VAL: 75,   // 'K'  object key complete, but value did not start
       TRUNCATED: 84,    // 'T'  key or value was unfinished at end of buffer
       UNEXPECTED: 85,   // 'U'  encountered a recognized token in wrong place/context
@@ -413,7 +413,7 @@ This simple mechanism works for all state transitions, except when we leave cont
 When a '}' or ']' is encountered, the new state will have no context set (you can see this for yourself in
 the Adding Custom Rules to Parsing section, below).
 
-When closing an object or array, the 'stack' is used to supplement missing context (91 is ascii for array-close):
+When closing an object or array, the 'stack' is used to supplement missing context (91 is ascii for array-open):
 
     if (stack.length !== 0) { state1 |= (stack[stack.length - 1] === 91 ? in_arr : in_obj) }
  
