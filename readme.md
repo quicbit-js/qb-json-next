@@ -7,7 +7,7 @@
 [downloads-image]: https://img.shields.io/npm/dm/qb-json-next.svg
 [npm-url]:         https://npmjs.org/package/qb-json-next
 
-A very fast, very light, zero-dependency JSON tokenizer (~300 MB/sec running node 6 on 2.2 GHz Intel i7).
+A very fast, very light, zero-dependency JSON tokenizer (~640 MB/sec on an Apple M2 Pro / node 22; ~300 MB/sec on the original 2.2 GHz Intel i7 / node 6).
 
 next() validates JSON **structure** as it tokenizes — nesting, commas, colons, key/value
 placement, and well-formed string and bracket boundaries — and reports the exact byte offset
