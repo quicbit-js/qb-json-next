@@ -12,13 +12,15 @@
   "types": "./index.d.ts",
   "devDependencies": {
     "tape": "^5.6.3",
-    "test-kit": "^2.9.1"
+    "test-kit": "^2.9.1",
+    "typescript": "^5.4.0"
   },
   "scripts": {
     "test": "tape test.js",
+    "typecheck": "tsc --noEmit --strict index.d.ts",
     "perf": "node export/perf.js",
     "cov": "tap --coverage-report=html test.js",
-    "preversion": "npm test",
+    "preversion": "npm test && npm run typecheck",
     "postversion": "git push && npm publish"
   },
   "keywords": [
