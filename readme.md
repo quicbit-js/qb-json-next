@@ -16,7 +16,9 @@ and string *content*: a token such as `01`, `1.2.3`, or `1e` is returned as a si
 (`d`) token, and string content (escape sequences, control characters, UTF-8) is passed through
 untouched. Decoding and content-validation of individual values is left to the consumer
 (e.g. `parseFloat`, escape handling). If you need full RFC 8259 number/string conformance,
-validate token values as you read them.
+validate token values as you read them — or use the drop-in
+[qb-json-strict](https://github.com/quicbit-js/qb-json-strict) wrapper, which adds exactly
+that content validation (numbers, strings, UTF-8) on top of this tokenizer.
 
 qb-json-next provides core parsing and state management for converting raw JSON buffers into tokens in a tiny library.
 
@@ -24,6 +26,31 @@ Check out [qb-json-tokenizer](https://github.com/quicbit-js/qb-json-tokenizer) f
 
 **Complies with the 100% test coverage and minimum dependency requirements** of 
 [qb-standard](http://github.com/quicbit-js/qb-standard) . 
+
+
+## How it compares
+
+For a JSON tokenizer/parser, both raw speed and code footprint matter — the latter
+especially in the browser. Throughput is on 64 MB of representative JSON (Apple M2 Pro,
+Node 22); bundle size is esbuild `--minify` + gzip, including transitive dependencies:
+
+| library | role | MB/s | vs `JSON.parse` | bundle (min+gzip) | deps | no Node polyfill |
+|---|---|--:|--:|--:|--:|:--:|
+| `JSON.parse` (native, C++) | parse → value tree | ~700 | 1.00× | built-in | — | ✅ |
+| **qb-json-next** `next()` | **tokenizer (structure)** | **640** | **0.92×** | **2.0 KB** | 0 | ✅ |
+| qb-json-strict `next_strict()` | + RFC 8259 content validation | 420 | 0.60× | 3.0 KB | 1 | ✅ |
+| @streamparser/json | tokenizer / parser | 84 / 70 | 0.12× | 5.6 KB | 0 | ✅ |
+| clarinet | SAX parser | 135 | 0.19× | 3.6 KB † | 0 | ⚠️ stream |
+| jsonparse | streaming parser | 98 | 0.14× | 2.2 KB † | 0 | ⚠️ Buffer |
+
+† bundle excludes the Node `Buffer` / `Stream` polyfill these need in a browser (adds several KB more).
+
+qb-json-next is the **fastest pure-JavaScript JSON tokenizer** measured here — roughly
+**5–8× the throughput** of other streaming JS parsers, in a **~2 KB gzipped**, zero-dependency,
+zero-polyfill bundle, and reaching **~0.9× the speed of native `JSON.parse`** (which is C++ and
+builds a full value tree rather than tokenizing). When you also need RFC 8259 content
+conformance, [qb-json-strict](https://github.com/quicbit-js/qb-json-strict) adds it for ~1 KB
+more. (Benchmark/footprint methodology lives in qb-json-strict's `export/compare.js`.)
 
 
 # install
