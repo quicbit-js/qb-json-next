@@ -21,7 +21,7 @@
     "perf": "node export/perf.js",
     "cov": "tap --coverage-report=html test.js",
     "preversion": "npm test && npm run typecheck",
-    "postversion": "git push && npm publish"
+    "postversion": "git push --follow-tags && npm publish"
   },
   "keywords": [
     "fast",
