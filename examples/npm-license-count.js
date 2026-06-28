@@ -1,6 +1,10 @@
 const fs = require('fs')
 const next = require('..')
-const fname = '/Users/dad/dev/json-samples/cache_150mb.json'
+const fname = process.argv[2]
+if (!fname) {
+  console.error('usage: node npm-license-count.js JSON-FILE   (e.g. an npm registry index dump)')
+  process.exit(1)
+}
 fs.readFile(fname, function (err, data) {
   console.log(
     '\n' +

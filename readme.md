@@ -68,6 +68,22 @@ below.
 next() has other helpful properties such as TOK, POS, ECODE, posname() and tokstr() which are
 explained in the following section.
 
+### Using from TypeScript
+
+qb-json-next ships type declarations (index.d.ts) - no `@types` package needed. Import it
+with `import next = require(...)`, or with a default import if you have `esModuleInterop`:
+
+    import next = require('qb-json-next')        // or: import next from 'qb-json-next'
+
+    const ps = next.ps(Buffer.from('{ "a": [1,2,3] }'))   // fully-typed ParseState
+    while (next(ps)) {
+      if (ps.tok === next.TOK.STR) { /* ps.koff, ps.voff, ps.vlim are typed as number */ }
+      console.log(next.tokstr(ps))
+    }
+
+Use `next.ps(src)` for a fully-typed parse state. The bare `{ next_src: buf }` literal also
+works as input - the remaining fields are initialized on the first next() call.
+
 ## The parse-state object (ps)
 
 Each call to next(ps) updates the parse-state object or 'ps'.  A parse-state object can be any object 
